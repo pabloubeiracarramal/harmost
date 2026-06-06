@@ -1,0 +1,44 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "hub",
+  "projectType": "application",
+  "sourceRoot": "apps/hub",
+  "tags": ["lang:go", "scope:hub"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go build -o dist/hub ./...",
+        "cwd": "apps/hub"
+      },
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": ["{workspaceRoot}/dist/hub"]
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./...",
+        "cwd": "apps/hub"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go test ./...",
+        "cwd": "apps/hub"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go vet ./...",
+        "cwd": "apps/hub"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    }
+  }
+}
