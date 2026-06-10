@@ -51,3 +51,18 @@ _None yet._
 ## Connections to Other Apps
 - Connects to: **hub** — bidirectional gRPC stream; see [architecture overview](../../docs/architecture.md) for protocol details.
 - Pairs with: **hub** OAuth2 device flow endpoint.
+
+## Folder Strcuture
+apps/agent/
+├── cmd/
+│   └── agent/
+│       ├── main.go         # Bootstraps the app
+│       ├── root.go         # Defines rootCmd and service helper
+│       ├── run.go          # 'agent run'
+│       ├── install.go      # 'agent install'
+│       ├── uninstall.go    # 'agent uninstall'
+│       ├── start.go        # 'agent start'
+│       └── stop.go         # 'agent stop'
+└── internal/
+    └── daemon/
+        └── program.go      # The background log loop
