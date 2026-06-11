@@ -8,7 +8,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go build -o dist/hub ./...",
+        "command": "go build -o dist/hub ./cmd/hub",
         "cwd": "apps/hub"
       },
       "cache": true,
@@ -18,7 +18,14 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go run ./...",
+        "command": "go run ./cmd/hub",
+        "cwd": "apps/hub"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "$(go env GOPATH)/bin/air",
         "cwd": "apps/hub"
       }
     },
