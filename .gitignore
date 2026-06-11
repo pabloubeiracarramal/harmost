@@ -41,5 +41,5 @@ vitest.config.*.timestamp*
 # Test coverage
 coverage/
 
-# Tempo
-.tempo/
+# Tmp
+tmp/
