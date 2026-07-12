@@ -18,18 +18,31 @@ type agentResponse struct {
 	Status      string     `json:"status"`
 	LastSeenAt  *time.Time `json:"last_seen_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
+
+	CpuUsagePercent   *float32 `json:"cpu_usage_percent,omitempty"`
+	MemoryUsedBytes   *int64   `json:"memory_used_bytes,omitempty"`
+	MemoryTotalBytes  *int64   `json:"memory_total_bytes,omitempty"`
+	DiskUsedBytes     *int64   `json:"disk_used_bytes,omitempty"`
+	DiskTotalBytes    *int64   `json:"disk_total_bytes,omitempty"`
+	RunningContainers *int32   `json:"running_containers,omitempty"`
 }
 
 func toAgentResponse(a domain.Agent) agentResponse {
 	return agentResponse{
-		ID:          a.ID,
-		Name:        a.Name,
-		Description: a.Description,
-		Version:     a.Version,
-		Hostname:    a.Hostname,
-		Status:      string(a.Status),
-		LastSeenAt:  a.LastSeenAt,
-		CreatedAt:   a.CreatedAt,
+		ID:                a.ID,
+		Name:              a.Name,
+		Description:       a.Description,
+		Version:           a.Version,
+		Hostname:          a.Hostname,
+		Status:            string(a.Status),
+		LastSeenAt:        a.LastSeenAt,
+		CreatedAt:         a.CreatedAt,
+		CpuUsagePercent:   a.CpuUsagePercent,
+		MemoryUsedBytes:   a.MemoryUsedBytes,
+		MemoryTotalBytes:  a.MemoryTotalBytes,
+		DiskUsedBytes:     a.DiskUsedBytes,
+		DiskTotalBytes:    a.DiskTotalBytes,
+		RunningContainers: a.RunningContainers,
 	}
 }
 

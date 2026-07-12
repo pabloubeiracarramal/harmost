@@ -64,14 +64,24 @@ func (s *AgentService) Connect(ctx context.Context, orgID string, in domain.Agen
 	return agent, err
 }
 
+// UpdateOnConnect updates an existing agent record (created at pairing) with live
+// metadata from AgentHello and marks it online.
+func (s *AgentService) UpdateOnConnect(ctx context.Context, id string, in domain.AgentConnectInput) (*domain.Agent, error) {
+	now := time.Now()
+	if err := s.agentRepo.UpdateOnConnect(ctx, id, in, now); err != nil {
+		return nil, err
+	}
+	return s.agentRepo.GetByID(ctx, "", id)
+}
+
 // Disconnect marks the agent offline when its gRPC stream closes.
 func (s *AgentService) Disconnect(ctx context.Context, id string) error {
 	return s.agentRepo.SetOffline(ctx, id)
 }
 
-// HandleHeartbeat refreshes the agent's last_seen_at timestamp.
-func (s *AgentService) HandleHeartbeat(ctx context.Context, id string, at time.Time) error {
-	return s.agentRepo.UpdateLastSeen(ctx, id, at)
+// HandleHeartbeat stores the latest metrics snapshot and refreshes last_seen_at.
+func (s *AgentService) HandleHeartbeat(ctx context.Context, id string, m domain.AgentMetrics, at time.Time) error {
+	return s.agentRepo.UpdateMetrics(ctx, id, m, at)
 }
 
 // List returns all agents belonging to an org.

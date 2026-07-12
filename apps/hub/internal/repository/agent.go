@@ -18,9 +18,11 @@ func (r *AgentRepo) Create(ctx context.Context, agent *domain.Agent) error {
 
 func (r *AgentRepo) GetByID(ctx context.Context, orgID, id string) (*domain.Agent, error) {
 	var a domain.Agent
-	err := r.db.WithContext(ctx).
-		First(&a, "id = ? AND org_id = ?", id, orgID).Error
-	return &a, notFound(err)
+	q := r.db.WithContext(ctx).Where("id = ?", id)
+	if orgID != "" {
+		q = q.Where("org_id = ?", orgID)
+	}
+	return &a, notFound(q.First(&a).Error)
 }
 
 func (r *AgentRepo) ListByOrg(ctx context.Context, orgID string) ([]domain.Agent, error) {
@@ -52,4 +54,33 @@ func (r *AgentRepo) UpdateLastSeen(ctx context.Context, id string, at time.Time)
 	return r.db.WithContext(ctx).Model(&domain.Agent{}).
 		Where("id = ?", id).
 		Update("last_seen_at", at).Error
+}
+
+// UpdateMetrics stores the latest system metrics snapshot from a heartbeat.
+func (r *AgentRepo) UpdateMetrics(ctx context.Context, id string, m domain.AgentMetrics, at time.Time) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"cpu_usage_percent":  m.CpuUsagePercent,
+			"memory_used_bytes":  m.MemoryUsedBytes,
+			"memory_total_bytes": m.MemoryTotalBytes,
+			"disk_used_bytes":    m.DiskUsedBytes,
+			"disk_total_bytes":   m.DiskTotalBytes,
+			"running_containers": m.RunningContainers,
+			"last_seen_at":       at,
+		}).Error
+}
+
+// UpdateOnConnect sets agent metadata from AgentHello and marks the agent online.
+func (r *AgentRepo) UpdateOnConnect(ctx context.Context, id string, in domain.AgentConnectInput, at time.Time) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"name":         in.Name,
+			"description":  in.Description,
+			"version":      in.Version,
+			"hostname":     in.Hostname,
+			"status":       domain.AgentStatusOnline,
+			"last_seen_at": at,
+		}).Error
 }
