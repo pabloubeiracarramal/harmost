@@ -1,13 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
+import { isAuthenticated } from '@/lib/auth';
 
 export const Route = createFileRoute('/')({
-  component: Index,
+  beforeLoad: () => {
+    if (isAuthenticated()) throw redirect({ to: '/dashboard' });
+    throw redirect({ to: '/login' });
+  },
 });
-
-function Index() {
-  return (
-    <div className="flex min-h-screen items-center justify-center">
-      <h1 className="text-2xl font-bold">Harmost</h1>
-    </div>
-  );
-}

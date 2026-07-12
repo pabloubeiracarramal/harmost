@@ -7,6 +7,7 @@ import (
 
 	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
 	"github.com/harmost/hub/internal/domain"
+	"github.com/harmost/hub/internal/events"
 	"github.com/harmost/hub/internal/service"
 	"google.golang.org/grpc"
 )
@@ -16,10 +17,11 @@ type Server struct {
 	harmostv1.UnimplementedAgentServiceServer
 	svc *service.Services
 	reg *registry
+	bus *events.Bus
 }
 
-func New(svc *service.Services) *Server {
-	return &Server{svc: svc, reg: newRegistry()}
+func New(svc *service.Services, bus *events.Bus) *Server {
+	return &Server{svc: svc, reg: newRegistry(), bus: bus}
 }
 
 // Register wires this server into a gRPC server instance.
@@ -28,7 +30,6 @@ func (s *Server) Register(g *grpc.Server) {
 }
 
 // Dispatch sends a job to a currently-connected agent.
-// Returns an error if the agent has no active stream.
 func (s *Server) Dispatch(ctx context.Context, agentID string, job *domain.Job) error {
 	send, ok := s.reg.get(agentID)
 	if !ok {

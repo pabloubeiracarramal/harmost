@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/harmost/hub/internal/events"
 	"github.com/harmost/hub/internal/platform"
 	"github.com/harmost/hub/internal/service"
 	"github.com/harmost/hub/internal/transport/grpcapi"
@@ -25,9 +26,10 @@ func main() {
 		log.Fatalf("db: %v", err)
 	}
 
-	svc := service.New(db)
-	grpcSrv := grpcapi.New(svc)
-	httpSrv := httpapi.New(svc, grpcSrv)
+	bus := events.New()
+	svc := service.New(db, cfg.FrontendURL)
+	grpcSrv := grpcapi.New(svc, bus)
+	httpSrv := httpapi.New(svc, grpcSrv, bus, cfg)
 
 	// ── gRPC ────────────────────────────────────────────────────────────────
 	g := grpc.NewServer()

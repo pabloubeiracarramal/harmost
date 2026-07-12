@@ -52,7 +52,7 @@ _None yet._
 - Connects to: **hub** — bidirectional gRPC stream; see [architecture overview](../../docs/architecture.md) for protocol details.
 - Pairs with: **hub** OAuth2 device flow endpoint.
 
-## Folder Strcuture
+## Folder Structure
 apps/agent/
 ├── cmd/
 │   └── agent/
@@ -62,7 +62,14 @@ apps/agent/
 │       ├── install.go      # 'agent install'
 │       ├── uninstall.go    # 'agent uninstall'
 │       ├── start.go        # 'agent start'
-│       └── stop.go         # 'agent stop'
+│       ├── stop.go         # 'agent stop'
+│       └── pair.go         # 'agent pair' — OAuth2 device flow
 └── internal/
-    └── daemon/
-        └── program.go      # The background log loop
+    ├── config/
+    │   └── config.go       # Load/Save config (hub addr, token)
+    ├── daemon/
+    │   └── program.go      # service.Interface: Start/Stop + backoff reconnect loop
+    ├── grpc/
+    │   └── client.go       # Dial, hello handshake, heartbeat loop, message dispatch
+    └── metrics/
+        └── metrics.go      # System metric collection (CPU, memory, disk)

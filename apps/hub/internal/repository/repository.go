@@ -8,20 +8,24 @@ import (
 )
 
 type Repos struct {
-	User   *UserRepo
-	Org    *OrgRepo
-	Agent  *AgentRepo
-	Job    *JobRepo
-	JobLog *JobLogRepo
+	User        *UserRepo
+	Org         *OrgRepo
+	Agent       *AgentRepo
+	Job         *JobRepo
+	JobLog      *JobLogRepo
+	AgentToken  *AgentTokenRepo
+	DeviceCode  *DeviceCodeRepo
 }
 
 func New(db *gorm.DB) *Repos {
 	return &Repos{
-		User:   &UserRepo{db: db},
-		Org:    &OrgRepo{db: db},
-		Agent:  &AgentRepo{db: db},
-		Job:    &JobRepo{db: db},
-		JobLog: &JobLogRepo{db: db},
+		User:       &UserRepo{db: db},
+		Org:        &OrgRepo{db: db},
+		Agent:      &AgentRepo{db: db},
+		Job:        &JobRepo{db: db},
+		JobLog:     &JobLogRepo{db: db},
+		AgentToken: &AgentTokenRepo{db: db},
+		DeviceCode: &DeviceCodeRepo{db: db},
 	}
 }
 

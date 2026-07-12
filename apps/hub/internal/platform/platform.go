@@ -10,18 +10,28 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	Env         string
-	HTTPAddr    string
-	GRPCAddr    string
+	DatabaseURL        string
+	Env                string
+	HTTPAddr           string
+	GRPCAddr           string
+	JWTSecret          string
+	GitHubClientID     string
+	GitHubClientSecret string
+	GitHubCallbackURL  string
+	FrontendURL        string
 }
 
 func LoadConfig() Config {
 	return Config{
-		DatabaseURL: requireEnv("DATABASE_URL"),
-		Env:         getEnv("ENV", "development"),
-		HTTPAddr:    getEnv("HTTP_ADDR", ":8080"),
-		GRPCAddr:    getEnv("GRPC_ADDR", ":50051"),
+		DatabaseURL:        requireEnv("DATABASE_URL"),
+		Env:                getEnv("ENV", "development"),
+		HTTPAddr:           getEnv("HTTP_ADDR", ":8080"),
+		GRPCAddr:           getEnv("GRPC_ADDR", ":50051"),
+		JWTSecret:          requireEnv("JWT_SECRET"),
+		GitHubClientID:     requireEnv("GITHUB_CLIENT_ID"),
+		GitHubClientSecret: requireEnv("GITHUB_CLIENT_SECRET"),
+		GitHubCallbackURL:  getEnv("GITHUB_CALLBACK_URL", "http://localhost:8080/auth/github/callback"),
+		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:4200"),
 	}
 }
 

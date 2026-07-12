@@ -3,8 +3,11 @@ package daemon
 import (
 	"context"
 	"log"
+	"math"
 	"time"
 
+	"github.com/harmost/agent/internal/config"
+	agentgrpc "github.com/harmost/agent/internal/grpc"
 	"github.com/kardianos/service"
 )
 
@@ -17,52 +20,59 @@ func NewAgentProgram() *AgentProgram {
 	return &AgentProgram{}
 }
 
-// Start is called by kardianos/service. It must be not block.
 func (p *AgentProgram) Start(s service.Service) error {
 	var ctx context.Context
 	ctx, p.cancel = context.WithCancel(context.Background())
-
-	// Start the actual work in a background goroutine
 	go p.run(ctx)
-
 	return nil
 }
 
-// TODO: Implement the gRPC reconnect loop:
-//  1. Load credentials (hub address + OAuth token) from the OS config file written by `pair`.
-//  2. Dial the hub over gRPC using those credentials.
-//  3. Open the bidirectional stream.
-//  4. Receive loop: block on stream.Recv(), dispatch incoming tasks/config to handlers.
-//  5. Send: push task results/events back up via stream.Send().
-//  6. On any error (stream closed, dial failed): reconnect with exponential back-off.
-//  7. Respect ctx.Done() — break the whole loop cleanly when the daemon is stopped.
 func (p *AgentProgram) run(ctx context.Context) {
-	log.Println("Agent daemon started.")
+	cfg, err := config.Load()
+	if err != nil {
+		log.Printf("agent: no config found — run 'harmost pair <hub-url>' first: %v", err)
+		return
+	}
 
-	// A simple ticker to simulate work
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
+	target := cfg.GRPCAddr
+	if target == "" {
+		target = agentgrpc.Target(cfg.HubAddr)
+	}
+	log.Printf("agent: connecting to hub at %s", target)
+
+	client := agentgrpc.New()
+	backoff := time.Second
+	const maxBackoff = 60 * time.Second
 
 	for {
 		select {
 		case <-ctx.Done():
-			// This triggers when Stop() calls p.cancel()
-			log.Println("Agent daemon shutting down gracefully...")
 			return
-		case <-ticker.C:
-			log.Println("Agent is running... (waiting for hub tasks)")
+		default:
 		}
+
+		if err := client.Connect(ctx, target, cfg.Token); err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			log.Printf("agent: connection lost (%v), reconnecting in %s", err, backoff)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(backoff):
+			}
+			backoff = min(time.Duration(float64(backoff)*math.Phi), maxBackoff)
+			continue
+		}
+		backoff = time.Second
 	}
 }
 
-// Stop is called by the OS or when you hit Ctrl+C in dev
 func (p *AgentProgram) Stop(s service.Service) error {
-	log.Println("Agent daemon stopping...")
+	log.Println("agent: stopping...")
 	if p.cancel != nil {
 		p.cancel()
 	}
-
-	//Give it a brief moment to finish logging the shutdown
 	time.Sleep(100 * time.Millisecond)
 	return nil
 }
