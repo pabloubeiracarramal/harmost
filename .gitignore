@@ -43,3 +43,6 @@ coverage/
 
 # Tmp
 tmp/
+
+# CodeGraph index
+.codegraph/

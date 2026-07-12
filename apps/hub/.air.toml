@@ -6,5 +6,9 @@
   include_ext = ["go"]
   kill_delay  = "1s"
 
+[env]
+  # air does not load .env files automatically — set vars here or export them
+  # in your shell before running air. Copy .env.example to .env for reference.
+
 [log]
   main_only = true

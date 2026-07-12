@@ -50,14 +50,14 @@
     "migrate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go run github.com/pressly/goose/v3/cmd/goose -dir migrations postgres \"$DATABASE_URL\" up",
+        "command": "$(go env GOPATH)/bin/goose -dir migrations postgres \"$DATABASE_URL\" up",
         "cwd": "apps/hub"
       }
     },
     "migrate:down": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go run github.com/pressly/goose/v3/cmd/goose -dir migrations postgres \"$DATABASE_URL\" down",
+        "command": "$(go env GOPATH)/bin/goose -dir migrations postgres \"$DATABASE_URL\" down",
         "cwd": "apps/hub"
       }
     }
