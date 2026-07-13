@@ -2,12 +2,6 @@
 
 A CLI daemon that installs itself as a system service and maintains a persistent bidirectional gRPC stream with the hub.
 
-## Building
-
-```bash
-nx run agent:build   # compiles to dist/agent
-```
-
 ## Commands
 
 ### `agent run`
@@ -16,8 +10,6 @@ Runs the agent in the foreground. Blocks until Ctrl+C (interactive) or until the
 
 ```bash
 nx run agent:serve
-# or after building:
-./dist/agent run
 ```
 
 ### `agent pair`
@@ -25,15 +17,18 @@ nx run agent:serve
 Pairs this agent with the hub using the OAuth2 device flow. Run this once after installing to authorize the agent.
 
 ```bash
-./dist/agent pair
+nx run agent:pair
 ```
 
 ### `agent install`
 
 Registers the agent as a system service so it starts automatically on boot. Requires elevated privileges (run as root / Administrator).
 
+> **Note:** The service manager registers the path of the running executable. Build first (`nx run agent:build`) so the service points to a stable binary, then run with sudo.
+
 ```bash
-./dist/agent install
+nx run agent:build
+sudo nx run agent:install
 ```
 
 ### `agent uninstall`
@@ -41,7 +36,7 @@ Registers the agent as a system service so it starts automatically on boot. Requ
 Removes the agent from the system service manager.
 
 ```bash
-./dist/agent uninstall
+sudo nx run agent:uninstall
 ```
 
 ### `agent start`
@@ -49,7 +44,7 @@ Removes the agent from the system service manager.
 Tells the service manager to start the already-installed service.
 
 ```bash
-./dist/agent start
+sudo nx run agent:start
 ```
 
 ### `agent stop`
@@ -57,29 +52,38 @@ Tells the service manager to start the already-installed service.
 Tells the service manager to stop the running service.
 
 ```bash
-./dist/agent stop
+sudo nx run agent:stop
 ```
 
 ## Typical setup flow
 
 ```bash
-# 1. Build
+# 1. Build (required so the service registers a stable binary path)
 nx run agent:build
 
 # 2. Install as a service (needs sudo/admin)
-sudo ./dist/agent install
+sudo nx run agent:install
 
 # 3. Pair with the hub
-./dist/agent pair
+nx run agent:pair
 
 # 4. Start the service
-sudo ./dist/agent start
+sudo nx run agent:start
 ```
+
+## Internal packages
+
+| Package | Responsibility |
+|---------|---------------|
+| `internal/config` | Load/save config file (`hub_addr`, `grpc_addr`, `token`) |
+| `internal/daemon` | `service.Interface` implementation — Start/Stop and backoff reconnect loop |
+| `internal/grpc` | gRPC client — dial, hello handshake, heartbeat, hub message dispatch |
+| `internal/metrics` | System metric collection (CPU, memory, disk) via gopsutil |
 
 ## Development
 
 ```bash
-nx run agent:serve   # go run ./... from apps/agent
+nx run agent:serve   # go run ./cmd/agent (foreground)
 nx run agent:test    # go test ./...
 nx run agent:lint    # go vet ./...
 ```

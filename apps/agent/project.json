@@ -18,7 +18,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go run ./...",
+        "command": "go run ./cmd/agent run",
         "cwd": "apps/agent"
       }
     },
@@ -39,6 +39,48 @@
       },
       "cache": true,
       "inputs": ["default"]
+    },
+    "pair": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent pair",
+        "cwd": "apps/agent"
+      }
+    },
+    "install": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent install",
+        "cwd": "apps/agent"
+      }
+    },
+    "uninstall": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent uninstall",
+        "cwd": "apps/agent"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent start",
+        "cwd": "apps/agent"
+      }
+    },
+    "stop": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent stop",
+        "cwd": "apps/agent"
+      }
+    },
+    "containers": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent containers",
+        "cwd": "apps/agent"
+      }
     }
   }
 }

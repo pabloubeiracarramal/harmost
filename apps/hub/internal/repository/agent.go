@@ -1,0 +1,86 @@
+package repository
+
+import (
+	"context"
+	"time"
+
+	"github.com/harmost/hub/internal/domain"
+	"gorm.io/gorm"
+)
+
+type AgentRepo struct {
+	db *gorm.DB
+}
+
+func (r *AgentRepo) Create(ctx context.Context, agent *domain.Agent) error {
+	return r.db.WithContext(ctx).Create(agent).Error
+}
+
+func (r *AgentRepo) GetByID(ctx context.Context, orgID, id string) (*domain.Agent, error) {
+	var a domain.Agent
+	q := r.db.WithContext(ctx).Where("id = ?", id)
+	if orgID != "" {
+		q = q.Where("org_id = ?", orgID)
+	}
+	return &a, notFound(q.First(&a).Error)
+}
+
+func (r *AgentRepo) ListByOrg(ctx context.Context, orgID string) ([]domain.Agent, error) {
+	var agents []domain.Agent
+	err := r.db.WithContext(ctx).
+		Where("org_id = ?", orgID).
+		Order("created_at DESC").
+		Find(&agents).Error
+	return agents, err
+}
+
+func (r *AgentRepo) SetOnline(ctx context.Context, id string, at time.Time) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"status":       domain.AgentStatusOnline,
+			"last_seen_at": at,
+		}).Error
+}
+
+func (r *AgentRepo) SetOffline(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Update("status", domain.AgentStatusOffline).Error
+}
+
+// UpdateLastSeen refreshes last_seen_at on heartbeat without changing status.
+func (r *AgentRepo) UpdateLastSeen(ctx context.Context, id string, at time.Time) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Update("last_seen_at", at).Error
+}
+
+// UpdateMetrics stores the latest system metrics snapshot from a heartbeat.
+func (r *AgentRepo) UpdateMetrics(ctx context.Context, id string, m domain.AgentMetrics, at time.Time) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"cpu_usage_percent":  m.CpuUsagePercent,
+			"memory_used_bytes":  m.MemoryUsedBytes,
+			"memory_total_bytes": m.MemoryTotalBytes,
+			"disk_used_bytes":    m.DiskUsedBytes,
+			"disk_total_bytes":   m.DiskTotalBytes,
+			"running_containers": m.RunningContainers,
+			"last_seen_at":       at,
+		}).Error
+}
+
+// UpdateOnConnect sets agent metadata from AgentHello and marks the agent online.
+func (r *AgentRepo) UpdateOnConnect(ctx context.Context, id string, in domain.AgentConnectInput, at time.Time) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"name":         in.Name,
+			"description":  in.Description,
+			"version":      in.Version,
+			"hostname":     in.Hostname,
+			"status":       domain.AgentStatusOnline,
+			"last_seen_at": at,
+		}).Error
+}

@@ -13,6 +13,11 @@ export default defineConfig(() => ({
   server: {
     port: 4200,
     host: 'localhost',
+    proxy: {
+      '/auth/github': 'http://localhost:8080',
+      '/api': 'http://localhost:8080',
+      '/ws': { target: 'ws://localhost:8080', ws: true },
+    },
   },
   preview: {
     port: 4200,

@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package harmost.v1;
+
+option go_package = "github.com/harmost/proto/gen/harmost/v1;harmostv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AgentService is implemented by the hub. Agents initiate the connection.
+service AgentService {
+  rpc Connect(stream AgentMessage) returns (stream HubMessage);
+}
+
+// ─── Hub → Agent ─────────────────────────────────────────────────────────────
+
+message HubMessage {
+  oneof payload {
+    DispatchJobRequest  dispatch_job          = 1;
+    CancelJobRequest    cancel_job            = 2;
+    SetHeartbeatInterval set_heartbeat_interval = 3;
+    Ping                ping                  = 4;
+  }
+}
+
+message DispatchJobRequest {
+  string  job_id = 1;
+  JobSpec spec   = 2;
+}
+
+message CancelJobRequest {
+  string job_id = 1;
+}
+
+// Sent by hub to change how often the agent emits Heartbeat messages.
+message SetHeartbeatInterval {
+  int32 interval_seconds = 1;
+}
+
+message Ping {
+  google.protobuf.Timestamp sent_at = 1;
+}
+
+// ─── Agent → Hub ─────────────────────────────────────────────────────────────
+
+message AgentMessage {
+  oneof payload {
+    AgentHello       hello         = 1;
+    JobStatusUpdate  status_update = 2;
+    LogChunk         log_chunk     = 3;
+    Heartbeat        heartbeat     = 4;
+    Pong             pong          = 5;
+  }
+}
+
+// First message sent by the agent after the stream is opened.
+message AgentHello {
+  string name        = 1;
+  string description = 2;
+  string version     = 3;
+  string hostname    = 4;
+}
+
+message JobStatusUpdate {
+  string                    job_id     = 1;
+  JobState                  state      = 2;
+  google.protobuf.Timestamp timestamp  = 3;
+  string                    message    = 4;
+  int32                     exit_code  = 5;
+}
+
+message LogChunk {
+  string                    job_id    = 1;
+  string                    line      = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  LogStream                 stream    = 4;
+  int64                     sequence  = 5;
+}
+
+// Periodic system health report; cadence controlled by SetHeartbeatInterval.
+message Heartbeat {
+  google.protobuf.Timestamp timestamp  = 1;
+  SystemMetrics             metrics    = 2;
+}
+
+message SystemMetrics {
+  float cpu_usage_percent    = 1;
+  int64 memory_used_bytes    = 2;
+  int64 memory_total_bytes   = 3;
+  int64 disk_used_bytes      = 4;
+  int64 disk_total_bytes     = 5;
+  int32 running_containers   = 6;
+}
+
+message Pong {
+  google.protobuf.Timestamp ping_sent_at  = 1;
+  google.protobuf.Timestamp received_at  = 2;
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum JobState {
+  JOB_STATE_UNSPECIFIED        = 0;
+  JOB_STATE_ACCEPTED           = 1;
+  JOB_STATE_PULLING_IMAGE      = 2;
+  JOB_STATE_CREATING_CONTAINER = 3;
+  JOB_STATE_STARTING_CONTAINER = 4;
+  JOB_STATE_RUNNING            = 5;
+  JOB_STATE_STOPPING           = 6;
+  JOB_STATE_CANCELLED          = 7;
+  JOB_STATE_SUCCEEDED          = 8;
+  JOB_STATE_FAILED             = 9;
+  JOB_STATE_TIMED_OUT          = 10;
+}
+
+enum LogStream {
+  LOG_STREAM_UNSPECIFIED = 0;
+  LOG_STREAM_STDOUT      = 1;
+  LOG_STREAM_STDERR      = 2;
+}
+
+enum PullPolicy {
+  PULL_POLICY_UNSPECIFIED      = 0;
+  PULL_POLICY_ALWAYS           = 1;
+  PULL_POLICY_IF_NOT_PRESENT   = 2;
+  PULL_POLICY_NEVER            = 3;
+}
+
+// ─── JobSpec ─────────────────────────────────────────────────────────────────
+
+message JobSpec {
+  string              image           = 1;
+  repeated string     command         = 2;
+  repeated string     args            = 3;
+  map<string, string> env             = 4;
+  repeated VolumeMount volume_mounts  = 5;
+  ResourceLimits      resource_limits = 6;
+  string              working_dir     = 7;
+  string              network_mode    = 8;
+  map<string, string> labels          = 9;
+  PullPolicy          pull_policy     = 10;
+  bool                privileged      = 11;
+  int32               timeout_seconds = 12;
+}
+
+message VolumeMount {
+  string host_path      = 1;
+  string container_path = 2;
+  bool   read_only      = 3;
+}
+
+message ResourceLimits {
+  int64 memory_bytes = 1;
+  float cpu_cores    = 2;
+}

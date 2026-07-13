@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "harmost-proto",
+  "projectType": "library",
+  "sourceRoot": "libs/harmost-proto",
+  "tags": ["lang:go", "scope:shared"],
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "$(go env GOPATH)/bin/buf generate",
+        "cwd": "libs/harmost-proto"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "$(go env GOPATH)/bin/buf lint",
+        "cwd": "libs/harmost-proto"
+      }
+    }
+  }
+}

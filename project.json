@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/nx/schemas/project-schema.json",
+  "name": "workspace",
+  "targets": {
+    "db": {
+      "command": "docker compose -f compose.dev.yaml up -d --wait"
+    },
+    "db:down": {
+      "command": "docker compose -f compose.dev.yaml down"
+    },
+    "db:reset": {
+      "command": "docker compose -f compose.dev.yaml down -v && docker compose -f compose.dev.yaml up -d --wait && npx nx run hub:migrate"
+    },
+    "dev": {
+      "command": "npx nx run workspace:db && npx nx run-many -t dev -p hub,front --output-style=stream"
+    },
+    "grpc:ui": {
+      "command": "grpcui -plaintext -import-path libs/harmost-proto/proto -proto harmost/v1/agent.proto localhost:50051"
+    }
+  }
+}

@@ -21,6 +21,7 @@ A CLI tool that installs itself as a system service (via `kardianos/service`) an
 | `agent stop` | Stop the running service |
 | `agent run` | Run the agent in the foreground (called by the service manager) |
 | `agent pair` | Pair this agent to a hub using OAuth2 device flow |
+| `agent containers` | List all containers on the host with their harmost job ID (debugging) |
 
 ## Nx Targets
 
@@ -30,6 +31,7 @@ A CLI tool that installs itself as a system service (via `kardianos/service`) an
 | `nx run agent:serve` | `go run ./...` (dev) |
 | `nx run agent:test` | `go test ./...` |
 | `nx run agent:lint` | `go vet ./...` |
+| `nx run agent:containers` | `go run ./cmd/agent containers` (debugging) |
 
 **MUST** use `nx run agent:<target>` — never call `go` directly.
 
@@ -46,13 +48,15 @@ A CLI tool that installs itself as a system service (via `kardianos/service`) an
 
 ## Known Gotchas
 <!-- Add sharp edges, non-obvious invariants, or past bugs here -->
-_None yet._
+- gRPC streams allow only ONE sending goroutine. All async sends (job status, logs, pong) must go through the `sendCh` channel in `internal/grpc/client.go` — never call `stream.Send` from another goroutine.
+- Jobs are bound to the daemon's root context, not the stream's: they survive hub reconnects. Messages sent while the stream is down are dropped once the 256-message buffer fills.
+- `docker.Run` returns `(exitCode, nil)` for a non-zero container exit — a non-nil error means the lifecycle itself failed. Terminal JobStates are decided in `manager.go`, never in `run.go`.
 
 ## Connections to Other Apps
 - Connects to: **hub** — bidirectional gRPC stream; see [architecture overview](../../docs/architecture.md) for protocol details.
 - Pairs with: **hub** OAuth2 device flow endpoint.
 
-## Folder Strcuture
+## Folder Structure
 apps/agent/
 ├── cmd/
 │   └── agent/
@@ -62,7 +66,20 @@ apps/agent/
 │       ├── install.go      # 'agent install'
 │       ├── uninstall.go    # 'agent uninstall'
 │       ├── start.go        # 'agent start'
-│       └── stop.go         # 'agent stop'
+│       ├── stop.go         # 'agent stop'
+│       ├── pair.go         # 'agent pair' — OAuth2 device flow
+│       └── containers.go   # 'agent containers' — list host containers (debugging)
 └── internal/
-    └── daemon/
-        └── program.go      # The background log loop
+    ├── config/
+    │   └── config.go       # Load/Save config (hub addr, token)
+    ├── daemon/
+    │   └── program.go      # service.Interface: Start/Stop + backoff reconnect loop
+    ├── docker/
+    │   ├── docker.go       # Moby SDK client wrapper (New, Ping, ListAllContainers)
+    │   ├── spec.go         # proto JobSpec → container.Config/HostConfig translation
+    │   ├── run.go          # One job's lifecycle: pull → create → start → stream logs → wait
+    │   └── manager.go      # Dispatch/Cancel — tracks running jobs, maps terminal JobStates
+    ├── grpc/
+    │   └── client.go       # Dial, hello handshake, heartbeat loop, send channel, job dispatch
+    └── metrics/
+        └── metrics.go      # System metric collection (CPU, memory, disk)
