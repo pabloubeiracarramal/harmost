@@ -1,7 +1,13 @@
 # Front App — AI Context
 
 ## What this app does
-UI allows users to view their CI/CD. Shows docker and agent information.
+Web UI for Harmost: GitHub OAuth login, agent dashboard with live status, agent detail with live metric gauges, and device-flow approval for agent pairing. Talks to the hub via REST (JWT bearer) for commands and a WebSocket (`/ws?token=<jwt>`) for live events; the Vite dev server proxies `/auth`, `/api`, and `/ws` to the hub on :8080.
+
+## Routes
+- `/` — home; `/login` — GitHub OAuth button; `/auth/callback` — stores JWT, redirects
+- `/dashboard` — agent list (REST) + live status (WebSocket)
+- `/agents/$id` — agent detail with live metric gauges
+- `/device?code=XXXX` — device-flow approval page for agent pairing
 
 ## Runtime
 - Framework: **React 19 + TypeScript 5.7**
@@ -16,11 +22,10 @@ UI allows users to view their CI/CD. Shows docker and agent information.
 
 | Target | Command |
 |--------|---------|
-| `nx run front:serve` | Vite dev server on port 4200 |
+| `nx run front:dev` (or `serve`) | Vite dev server on port 4200 |
 | `nx run front:build` | Production build → `dist/apps/front` |
 | `nx run front:test` | Vitest (watch=false) |
 | `nx run front:typecheck` | `tsc --noEmit` |
-| `nx run front:lint` | ESLint |
 
 **MUST** use `nx run front:<target>` — never call `vite` or `tsc` directly.
 

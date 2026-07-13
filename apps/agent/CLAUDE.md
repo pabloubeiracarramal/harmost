@@ -1,7 +1,7 @@
 # Agent App — AI Context
 
 ## What this app does
-A CLI tool that installs itself as a system service (via `kardianos/service`) and maintains a persistent bidirectional gRPC stream with the hub. Pairing to a hub is done via OAuth2 device flow (`pair` command).
+A CLI tool that installs itself as a system service (via `kardianos/service`), maintains a persistent bidirectional gRPC stream with the hub, and executes dispatched jobs as Docker containers (moby SDK), streaming status and logs back up the stream. Pairing to a hub is done via OAuth2 device flow (`pair` command).
 
 ## Runtime
 - Language: **Go** (`github.com/harmost/agent`, Go 1.26)
@@ -28,7 +28,7 @@ A CLI tool that installs itself as a system service (via `kardianos/service`) an
 | Target | Command |
 |--------|---------|
 | `nx run agent:build` | Compiles to `dist/agent` |
-| `nx run agent:serve` | `go run ./...` (dev) |
+| `nx run agent:serve` | `go run ./cmd/agent run` (foreground dev) |
 | `nx run agent:test` | `go test ./...` |
 | `nx run agent:lint` | `go vet ./...` |
 | `nx run agent:containers` | `go run ./cmd/agent containers` (debugging) |

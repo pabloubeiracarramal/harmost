@@ -1,6 +1,6 @@
 # Harmost Agent
 
-A CLI daemon that installs itself as a system service and maintains a persistent bidirectional gRPC stream with the hub.
+A CLI daemon that installs itself as a system service, maintains a persistent bidirectional gRPC stream with the hub, and executes dispatched jobs as Docker containers — streaming status and logs back up the same stream.
 
 ## Commands
 
@@ -55,6 +55,14 @@ Tells the service manager to stop the running service.
 sudo nx run agent:stop
 ```
 
+### `agent containers`
+
+Debugging helper: lists all containers on the host, annotated with their harmost job ID where applicable.
+
+```bash
+nx run agent:containers
+```
+
 ## Typical setup flow
 
 ```bash
@@ -77,6 +85,7 @@ sudo nx run agent:start
 |---------|---------------|
 | `internal/config` | Load/save config file (`hub_addr`, `grpc_addr`, `token`) |
 | `internal/daemon` | `service.Interface` implementation — Start/Stop and backoff reconnect loop |
+| `internal/docker` | Docker job executor (moby SDK) — pull → create → start → stream logs → wait; Dispatch/Cancel manager |
 | `internal/grpc` | gRPC client — dial, hello handshake, heartbeat, hub message dispatch |
 | `internal/metrics` | System metric collection (CPU, memory, disk) via gopsutil |
 

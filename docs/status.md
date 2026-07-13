@@ -10,6 +10,7 @@ MVP push — see [docs/roadmap.md](roadmap.md). M1 (agent Docker executor, #16/#
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-07-13 | docs | Docs tidy-up — root README written (was empty); root CLAUDE.md overview/monorepo sections filled; architecture.md corrected (job dispatch is REST not WS, webhooks marked planned, JWT auth not DB sessions, GORM not pgx, libs/harmost-proto documented, ADRs 0004–0006 linked); roadmap M1 marked done and stale Docker blocker cleared; app READMEs/CLAUDE.md files synced (agent `containers` + `internal/docker`, hub webhook mention removed, front routes + real Nx targets) |
 | 2026-07-13 | agent | Docker executor (M1) — run.go full container lifecycle (pull per policy → create → start → log streaming with stdout/stderr demux → wait, force-remove cleanup); manager.go Dispatch/Cancel with per-job timeout ctx and terminal JobState mapping |
 | 2026-07-13 | agent | gRPC job wiring — DispatchJob/CancelJob handled, job status/log messages funneled through send channel (single-sender stream), Ping now answered with Pong; daemon creates Docker+Manager at boot (degrades gracefully without Docker) |
 | 2026-07-13 | agent | `agent containers` debug command — lists all host containers with their harmost job ID; runnable via `nx run agent:containers` |

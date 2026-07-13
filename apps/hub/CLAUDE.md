@@ -25,7 +25,7 @@ cmd/hub/main.go          # entry point, wires everything
 internal/
   domain/                # shared types: Agent, Job, Org, User, JobLog
   transport/
-    httpapi/             # chi router, WebSocket, OAuth, webhook handlers
+    httpapi/             # chi router, REST endpoints, WebSocket, GitHub OAuth, device flow
     grpcapi/             # gRPC server, bidirectional stream handler
   service/               # business logic (AgentService, JobService, ...)
   repository/            # GORM-backed persistence
@@ -54,6 +54,6 @@ migrations/              # goose SQL migration files
 - GORM errors are returned normally but watch for silent N+1 queries on associations — use `Preload` explicitly, never rely on lazy loading.
 
 ## Connections to Other Apps
-- **front** connects via WebSocket for live updates and job commands.
+- **front** sends commands via REST (`/api/v1/*`, JWT bearer) and receives live updates via WebSocket (`/ws?token=<jwt>`).
 - **agent** connects via gRPC bidirectional stream (agent always initiates).
 - See [architecture overview](../../docs/architecture.md) and [ADR 0002](../../docs/adr/0002-inter-service-communication.md).
