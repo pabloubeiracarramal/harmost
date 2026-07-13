@@ -5,7 +5,7 @@
 # frontend callback URL will contain ?token=<jwt>. Paste it below.
 
 @host = http://localhost:8080
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3ODM2MzAwOTYsImlhdCI6MTc4MzU0MzY5NiwidWlkIjoiOGU3YmVjY2EtN2ZjZC00MzE3LWJiZTItZDkxZGNkOThhZWU1Iiwib2lkIjoiNWM5ZmU2NmEtMTgyYi00ZjU2LWJiZDYtMTQ1ZjUzMjg0NGFiIn0.J3WSgFJ1du6yqoCEJK1bpGsC_rs3oO3elJT1FLDmZ1M
+@token = PASTE_YOUR_JWT_HERE
 
 ### Login with GitHub (open this URL in a browser, not here)
 GET {{host}}/auth/github
