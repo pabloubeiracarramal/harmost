@@ -1,9 +1,19 @@
 
 ## Project Overview
 
-
+Harmost is a CI/CD orchestration SaaS: a cloud-hosted **hub** (Go) dispatches Docker-based jobs to **agents** (Go daemons) installed on users' machines, monitored and controlled from a React **front**. Front ↔ hub is REST + WebSocket; hub ↔ agent is a gRPC bidirectional stream (agent initiates). See `docs/architecture.md` for the full picture and `docs/status.md` for current state.
 
 ## Monorepo reference
+
+| Path | Contents |
+|------|----------|
+| `apps/front` | React 19 + TS + Vite web UI (see `apps/front/CLAUDE.md`) |
+| `apps/hub` | Go backend — REST/WS + gRPC server + PostgreSQL (see `apps/hub/CLAUDE.md`) |
+| `apps/agent` | Go CLI/daemon — Docker job executor (see `apps/agent/CLAUDE.md`) |
+| `libs/harmost-proto` | Protobuf contract (buf) shared by hub and agent |
+| `docs/` | architecture, roadmap, status, dev guide, ADRs |
+
+Everything runs through Nx: `nx run <project>:<target>`. Projects: `front`, `hub`, `agent`, `workspace` (root targets: `dev`, `db`, `db:reset`, `grpc:ui`).
 
 
 ## Agent Behavior

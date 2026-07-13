@@ -27,11 +27,14 @@ The gap: **jobs never execute.** The agent logs `DispatchJob` and does nothing
 (`apps/agent/internal/grpc/client.go`). Job events never reach the WebSocket.
 No jobs UI. No TLS on gRPC. No tests. No deployment story.
 
+*(Update 2026-07-13: M1 closed the execution gap — jobs now run in Docker with
+status/logs persisted. Remaining gaps are M2 onward.)*
+
 ## Plan
 
 | # | Milestone | Due | Issues | Scope |
 |---|-----------|-----|--------|-------|
-| M1 | Agent Docker executor | Jul 22 | [#16](https://github.com/pabloubeiracarramal/harmost/issues/16), [#17](https://github.com/pabloubeiracarramal/harmost/issues/17) | The product hinge. Docker SDK executor: pull → create → start → attach; every `JobState` transition; exit codes; `timeout_seconds`; `CancelJob`; log chunks with sequence numbers streamed up the existing gRPC stream. |
+| M1 ✅ | Agent Docker executor — **done 2026-07-13** | Jul 22 | [#16](https://github.com/pabloubeiracarramal/harmost/issues/16), [#17](https://github.com/pabloubeiracarramal/harmost/issues/17) | The product hinge. Docker SDK executor: pull → create → start → attach; every `JobState` transition; exit codes; `timeout_seconds`; `CancelJob`; log chunks with sequence numbers streamed up the existing gRPC stream. |
 | M2 | Job lifecycle & live events | Jul 29 | [#10](https://github.com/pabloubeiracarramal/harmost/issues/10), [#25](https://github.com/pabloubeiracarramal/harmost/issues/25) | Orphan sweeper (agent dies → non-terminal jobs `failed`), reject dispatch to offline agents, survive reconnect mid-job. Add `job.status` / `job.log` bus events and forward over the WebSocket. |
 | M3 | Jobs UI | Aug 5 | [#21](https://github.com/pabloubeiracarramal/harmost/issues/21), [#22](https://github.com/pabloubeiracarramal/harmost/issues/22), [#26](https://github.com/pabloubeiracarramal/harmost/issues/26) | Dispatch form, jobs list, job detail with live log viewer (backfill + WS append). Session hardening: WS auto-reconnect, JWT expiry handling, `GET /me`. |
 | M4 | Security & production hardening | Aug 12 | [#27](https://github.com/pabloubeiracarramal/harmost/issues/27), [#28](https://github.com/pabloubeiracarramal/harmost/issues/28) | TLS on gRPC (agent keeps `--insecure` for local dev), agent-token list/revoke UI, rate limiting on unauthenticated endpoints. |
@@ -40,8 +43,8 @@ No jobs UI. No TLS on gRPC. No tests. No deployment story.
 
 ## Known blockers
 
-- Docker Desktop WSL integration disabled on the dev machine — blocks local
-  Postgres and the M1 executor. See `docs/status.md`.
+None. (Docker Desktop WSL integration was enabled 2026-07-13; current state
+lives in `docs/status.md`.)
 
 ## Why 2 months is realistic
 
