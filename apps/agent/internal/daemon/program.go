@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/harmost/agent/internal/config"
+	"github.com/harmost/agent/internal/docker"
 	agentgrpc "github.com/harmost/agent/internal/grpc"
 	"github.com/kardianos/service"
 )
@@ -40,7 +41,17 @@ func (p *AgentProgram) run(ctx context.Context) {
 	}
 	log.Printf("agent: connecting to hub at %s", target)
 
-	client := agentgrpc.New()
+	var mgr *docker.Manager
+	if dock, err := docker.New(); err != nil {
+		log.Printf("agent: docker unavailable, job execution disabled: %v", err)
+	} else {
+		if err := dock.Ping(ctx); err != nil {
+			log.Printf("agent: docker daemon not reachable (jobs will fail until it is): %v", err)
+		}
+		mgr = docker.NewManager(dock)
+	}
+
+	client := agentgrpc.New(mgr)
 	backoff := time.Second
 	const maxBackoff = 60 * time.Second
 

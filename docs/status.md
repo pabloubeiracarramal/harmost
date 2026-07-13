@@ -4,12 +4,16 @@
 
 ## Current Focus
 
-MVP push — see [docs/roadmap.md](roadmap.md). Next up: M1, the agent Docker executor (#16, #17).
+MVP push — see [docs/roadmap.md](roadmap.md). M1 (agent Docker executor, #16/#17) implemented and verified E2E on 2026-07-13: hub REST dispatch → gRPC stream → agent container run → status/logs persisted (success, non-zero exit, container cleanup all confirmed). Next: M2.
 
 ## Recent Changes
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-07-13 | agent | Docker executor (M1) — run.go full container lifecycle (pull per policy → create → start → log streaming with stdout/stderr demux → wait, force-remove cleanup); manager.go Dispatch/Cancel with per-job timeout ctx and terminal JobState mapping |
+| 2026-07-13 | agent | gRPC job wiring — DispatchJob/CancelJob handled, job status/log messages funneled through send channel (single-sender stream), Ping now answered with Pong; daemon creates Docker+Manager at boot (degrades gracefully without Docker) |
+| 2026-07-13 | agent | `agent containers` debug command — lists all host containers with their harmost job ID; runnable via `nx run agent:containers` |
+| 2026-07-13 | agent | internal/docker started (M1) — moby SDK wrapper (New/Ping/ListAllContainers) + JobSpec→container.Config translation in spec.go |
 | 2026-07-08 | docs | docs/roadmap.md — 8-week MVP plan; GitHub tracker reconciled (12 stale issues closed, milestones M1–M6, issues #25–#33) |
 | 2026-07-08 | repo | Dev toolset — compose.dev.yaml (Postgres+Adminer), workspace Nx targets (db, db:reset, dev, grpc:ui), apps/hub/api.http, docs/dev.md, root .envrc; installed grpcurl/grpcui/dlv |
 | 2026-06-19 | hub | Agent metrics — migration 009 adds metrics columns to agents; heartbeats persist CPU/mem/disk snapshots, exposed via REST |
@@ -47,9 +51,10 @@ MVP push — see [docs/roadmap.md](roadmap.md). Next up: M1, the agent Docker ex
 - [ ] WebSocket auto-reconnect on the frontend (currently closes on error)
 - [ ] JWT refresh / token expiry handling in frontend (tokens expire in 24h)
 - [ ] GET /api/v1/me — return current user profile
-- [ ] Job execution in agent — `handleHubMessage` currently just logs received jobs
+- [ ] Job update loss on disconnect — status/log sends are dropped once the 256-message buffer fills while the stream is down; needs hub-side reconciliation on reconnect
+- [ ] JobSpec HostConfig mapping — volume mounts, resource limits, network mode, privileged not yet translated (post-MVP per spec.go)
 - [ ] Multi-org support — org switcher; users currently always use their personal org
 
 ## Known Issues / Blockers
 
-- Docker Desktop WSL integration is disabled on the dev machine — blocks local Postgres (compose.dev.yaml) and, later, the agent's Docker executor. Enable in Docker Desktop → Settings → Resources → WSL Integration.
+_None currently. (Docker Desktop WSL integration was enabled on 2026-07-13, unblocking local Postgres and the agent's Docker executor.)_

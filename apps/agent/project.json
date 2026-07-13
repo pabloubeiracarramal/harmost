@@ -74,6 +74,13 @@
         "command": "go run ./cmd/agent stop",
         "cwd": "apps/agent"
       }
+    },
+    "containers": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./cmd/agent containers",
+        "cwd": "apps/agent"
+      }
     }
   }
 }
