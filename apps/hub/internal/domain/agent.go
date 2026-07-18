@@ -54,6 +54,7 @@ type AgentRepository interface {
 	ListByOrg(ctx context.Context, orgID string) ([]Agent, error)
 	SetOnline(ctx context.Context, id string, at time.Time) error
 	SetOffline(ctx context.Context, id string) error
+	MarkAllOffline(ctx context.Context) error
 	UpdateLastSeen(ctx context.Context, id string, at time.Time) error
 	UpdateOnConnect(ctx context.Context, id string, in AgentConnectInput, at time.Time) error
 	UpdateMetrics(ctx context.Context, id string, m AgentMetrics, at time.Time) error
@@ -63,6 +64,7 @@ type AgentService interface {
 	Connect(ctx context.Context, orgID string, in AgentConnectInput) (*Agent, error)
 	UpdateOnConnect(ctx context.Context, id string, in AgentConnectInput) (*Agent, error)
 	Disconnect(ctx context.Context, id string) error
+	MarkAllOffline(ctx context.Context) error
 	HandleHeartbeat(ctx context.Context, id string, m AgentMetrics, at time.Time) error
 	List(ctx context.Context, orgID string) ([]Agent, error)
 	GetByID(ctx context.Context, orgID, id string) (*Agent, error)

@@ -29,6 +29,12 @@ func (s *Server) Register(g *grpc.Server) {
 	harmostv1.RegisterAgentServiceServer(g, s)
 }
 
+// Connected reports whether an agent currently has an active stream.
+func (s *Server) Connected(agentID string) bool {
+	_, ok := s.reg.get(agentID)
+	return ok
+}
+
 // Dispatch sends a job to a currently-connected agent.
 func (s *Server) Dispatch(ctx context.Context, agentID string, job *domain.Job) error {
 	send, ok := s.reg.get(agentID)

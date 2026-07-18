@@ -79,6 +79,12 @@ func (s *AgentService) Disconnect(ctx context.Context, id string) error {
 	return s.agentRepo.SetOffline(ctx, id)
 }
 
+// MarkAllOffline resets every agent to offline at hub startup, when no
+// streams exist yet — recovers agents left online by a crash.
+func (s *AgentService) MarkAllOffline(ctx context.Context) error {
+	return s.agentRepo.MarkAllOffline(ctx)
+}
+
 // HandleHeartbeat stores the latest metrics snapshot and refreshes last_seen_at.
 func (s *AgentService) HandleHeartbeat(ctx context.Context, id string, m domain.AgentMetrics, at time.Time) error {
 	return s.agentRepo.UpdateMetrics(ctx, id, m, at)

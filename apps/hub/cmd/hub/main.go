@@ -31,6 +31,30 @@ func main() {
 	grpcSrv := grpcapi.New(svc, bus)
 	httpSrv := httpapi.New(svc, grpcSrv, bus, cfg)
 
+	// No streams exist yet — flip agents left online by a previous crash so
+	// the orphan sweeper can see their jobs.
+	if err := svc.Agent.MarkAllOffline(context.Background()); err != nil {
+		log.Printf("mark agents offline: %v", err)
+	}
+
+	// Orphan sweeper: fail jobs whose agent has been offline > 2m.
+	sweepCtx, stopSweeper := context.WithCancel(context.Background())
+	defer stopSweeper()
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-sweepCtx.Done():
+				return
+			case <-ticker.C:
+				if err := svc.Job.SweepOrphans(sweepCtx, 2*time.Minute); err != nil {
+					log.Printf("sweep orphans: %v", err)
+				}
+			}
+		}
+	}()
+
 	// ── gRPC ────────────────────────────────────────────────────────────────
 	g := grpc.NewServer()
 	grpcSrv.Register(g)

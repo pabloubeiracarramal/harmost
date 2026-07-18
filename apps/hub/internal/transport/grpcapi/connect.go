@@ -2,6 +2,7 @@ package grpcapi
 
 import (
 	"context"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,11 @@ import (
 const (
 	logFlushInterval = 500 * time.Millisecond
 	logBatchSize     = 500
+
+	// reconcileDelay is how long after a hello the hub waits before failing
+	// jobs the agent did not report — long enough for terminal statuses
+	// queued agent-side during an outage to land first.
+	reconcileDelay = 15 * time.Second
 )
 
 // Connect is the bidirectional stream handler. Each connected agent gets one
@@ -62,6 +68,17 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 		OrgID:   orgID,
 		AgentID: agent.ID,
 		At:      time.Now(),
+	})
+
+	// Reconcile against the hello's running set once queued terminal
+	// statuses have had a chance to land. context.Background(): the answer
+	// is valid even if this stream has dropped again by then.
+	helloAt := time.Now()
+	runningIDs := hello.Hello.RunningJobIds
+	time.AfterFunc(reconcileDelay, func() {
+		if err := s.svc.Job.ReconcileAgent(context.Background(), agent.ID, runningIDs, helloAt); err != nil {
+			log.Printf("reconcile agent %s: %v", agent.ID, err)
+		}
 	})
 
 	var sendMu sync.Mutex

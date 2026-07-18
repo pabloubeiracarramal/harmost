@@ -60,6 +60,24 @@ func (r *JobRepo) UpdateState(ctx context.Context, id string, state domain.JobSt
 	return res.RowsAffected > 0, res.Error
 }
 
+func (r *JobRepo) ListActiveByAgent(ctx context.Context, agentID string, createdBefore time.Time) ([]domain.Job, error) {
+	var jobs []domain.Job
+	err := r.db.WithContext(ctx).
+		Where("agent_id = ? AND state NOT IN ? AND created_at < ?", agentID, domain.TerminalJobStates, createdBefore).
+		Find(&jobs).Error
+	return jobs, err
+}
+
+func (r *JobRepo) ListActiveForOfflineAgents(ctx context.Context, seenBefore time.Time) ([]domain.Job, error) {
+	var jobs []domain.Job
+	err := r.db.WithContext(ctx).
+		Joins("JOIN agents ON agents.id = jobs.agent_id").
+		Where("jobs.state NOT IN ? AND agents.status = ? AND agents.last_seen_at < ?",
+			domain.TerminalJobStates, domain.AgentStatusOffline, seenBefore).
+		Find(&jobs).Error
+	return jobs, err
+}
+
 func (r *JobRepo) SetStarted(ctx context.Context, id string, at time.Time) (bool, error) {
 	res := r.db.WithContext(ctx).Model(&domain.Job{}).
 		Where("id = ? AND state NOT IN ?", id, domain.TerminalJobStates).

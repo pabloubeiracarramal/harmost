@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/harmost/hub/internal/domain"
@@ -74,6 +75,54 @@ func (s *JobService) applyStatus(ctx context.Context, job *domain.Job, in domain
 		},
 	})
 	return nil
+}
+
+// ReconcileAgent fails jobs the DB believes are active on an agent but the
+// agent did not report in its hello. Called ~15s after (re)connect so terminal
+// statuses queued agent-side during an outage land first (the terminal guard
+// then makes this a no-op for them). helloAt excludes jobs dispatched after
+// the hello — they are alive on the new stream, not lost.
+func (s *JobService) ReconcileAgent(ctx context.Context, agentID string, runningJobIDs []string, helloAt time.Time) error {
+	jobs, err := s.jobRepo.ListActiveByAgent(ctx, agentID, helloAt)
+	if err != nil {
+		return err
+	}
+	running := make(map[string]struct{}, len(runningJobIDs))
+	for _, id := range runningJobIDs {
+		running[id] = struct{}{}
+	}
+
+	var errs []error
+	for i := range jobs {
+		if _, ok := running[jobs[i].ID]; ok {
+			continue
+		}
+		errs = append(errs, s.applyStatus(ctx, &jobs[i], domain.JobStatusInput{
+			JobID:     jobs[i].ID,
+			State:     domain.JobStateFailed,
+			Message:   "job lost: agent reconnected without it",
+			Timestamp: time.Now(),
+		}))
+	}
+	return errors.Join(errs...)
+}
+
+// SweepOrphans fails jobs whose agent has been offline longer than grace.
+func (s *JobService) SweepOrphans(ctx context.Context, grace time.Duration) error {
+	jobs, err := s.jobRepo.ListActiveForOfflineAgents(ctx, time.Now().Add(-grace))
+	if err != nil {
+		return err
+	}
+	var errs []error
+	for i := range jobs {
+		errs = append(errs, s.applyStatus(ctx, &jobs[i], domain.JobStatusInput{
+			JobID:     jobs[i].ID,
+			State:     domain.JobStateFailed,
+			Message:   "agent offline",
+			Timestamp: time.Now(),
+		}))
+	}
+	return errors.Join(errs...)
 }
 
 // ListByOrg returns all jobs for an org ordered by created_at DESC.

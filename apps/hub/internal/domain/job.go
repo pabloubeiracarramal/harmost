@@ -100,6 +100,13 @@ type JobRepository interface {
 	ListByAgent(ctx context.Context, agentID string) ([]Job, error)
 	UpdateState(ctx context.Context, id string, state JobState, msg string, exitCode *int32, finishedAt *time.Time) (bool, error)
 	SetStarted(ctx context.Context, id string, at time.Time) (bool, error)
+	// ListActiveByAgent returns non-terminal jobs for an agent created before
+	// the cutoff — reconciliation must not touch jobs dispatched after the
+	// hello it is reconciling against.
+	ListActiveByAgent(ctx context.Context, agentID string, createdBefore time.Time) ([]Job, error)
+	// ListActiveForOfflineAgents returns non-terminal jobs whose agent is
+	// offline and was last seen before the cutoff.
+	ListActiveForOfflineAgents(ctx context.Context, seenBefore time.Time) ([]Job, error)
 }
 
 type JobService interface {
@@ -107,4 +114,6 @@ type JobService interface {
 	HandleStatusUpdate(ctx context.Context, in JobStatusInput) error
 	ListByOrg(ctx context.Context, orgID string) ([]Job, error)
 	GetByID(ctx context.Context, id string) (*Job, error)
+	ReconcileAgent(ctx context.Context, agentID string, runningJobIDs []string, helloAt time.Time) error
+	SweepOrphans(ctx context.Context, grace time.Duration) error
 }

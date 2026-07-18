@@ -43,9 +43,24 @@ func (r *AgentRepo) SetOnline(ctx context.Context, id string, at time.Time) erro
 		}).Error
 }
 
+// SetOffline marks the agent offline and stamps last_seen_at so the orphan
+// sweeper's grace clock starts at disconnect.
 func (r *AgentRepo) SetOffline(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Model(&domain.Agent{}).
 		Where("id = ?", id).
+		Updates(map[string]any{
+			"status":       domain.AgentStatusOffline,
+			"last_seen_at": time.Now(),
+		}).Error
+}
+
+// MarkAllOffline flips every online agent to offline. Called once at hub
+// startup: after a crash the per-stream Disconnect never ran, and the sweeper
+// only looks at offline agents. last_seen_at is left untouched so the grace
+// clock reflects real last contact.
+func (r *AgentRepo) MarkAllOffline(ctx context.Context) error {
+	return r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("status = ?", domain.AgentStatusOnline).
 		Update("status", domain.AgentStatusOffline).Error
 }
 
