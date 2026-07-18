@@ -40,7 +40,10 @@ func (r *JobRepo) ListByAgent(ctx context.Context, agentID string) ([]domain.Job
 	return jobs, err
 }
 
-func (r *JobRepo) UpdateState(ctx context.Context, id string, state domain.JobState, msg string, exitCode *int32, finishedAt *time.Time) error {
+// UpdateState applies a state transition unless the job is already terminal.
+// The SQL guard is the authority under concurrent writers (stream handler,
+// reconcile, sweeper); the returned bool reports whether the update applied.
+func (r *JobRepo) UpdateState(ctx context.Context, id string, state domain.JobState, msg string, exitCode *int32, finishedAt *time.Time) (bool, error) {
 	updates := map[string]any{
 		"state":   state,
 		"message": msg,
@@ -51,16 +54,18 @@ func (r *JobRepo) UpdateState(ctx context.Context, id string, state domain.JobSt
 	if finishedAt != nil {
 		updates["finished_at"] = finishedAt
 	}
-	return r.db.WithContext(ctx).Model(&domain.Job{}).
-		Where("id = ?", id).
-		Updates(updates).Error
+	res := r.db.WithContext(ctx).Model(&domain.Job{}).
+		Where("id = ? AND state NOT IN ?", id, domain.TerminalJobStates).
+		Updates(updates)
+	return res.RowsAffected > 0, res.Error
 }
 
-func (r *JobRepo) SetStarted(ctx context.Context, id string, at time.Time) error {
-	return r.db.WithContext(ctx).Model(&domain.Job{}).
-		Where("id = ?", id).
+func (r *JobRepo) SetStarted(ctx context.Context, id string, at time.Time) (bool, error) {
+	res := r.db.WithContext(ctx).Model(&domain.Job{}).
+		Where("id = ? AND state NOT IN ?", id, domain.TerminalJobStates).
 		Updates(map[string]any{
 			"state":      domain.JobStateRunning,
 			"started_at": at,
-		}).Error
+		})
+	return res.RowsAffected > 0, res.Error
 }

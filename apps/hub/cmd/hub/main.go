@@ -27,7 +27,7 @@ func main() {
 	}
 
 	bus := events.New()
-	svc := service.New(db, cfg.FrontendURL)
+	svc := service.New(db, cfg.FrontendURL, bus)
 	grpcSrv := grpcapi.New(svc, bus)
 	httpSrv := httpapi.New(svc, grpcSrv, bus, cfg)
 

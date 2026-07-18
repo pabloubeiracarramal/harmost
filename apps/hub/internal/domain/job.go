@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"slices"
 	"time"
 )
 
@@ -20,6 +21,19 @@ const (
 	JobStateFailed            JobState = "failed"
 	JobStateTimedOut          JobState = "timed_out"
 )
+
+// TerminalJobStates are the states a job can never leave. The repository's
+// guarded updates and IsTerminal must agree on this set.
+var TerminalJobStates = []JobState{
+	JobStateCancelled,
+	JobStateSucceeded,
+	JobStateFailed,
+	JobStateTimedOut,
+}
+
+func IsTerminal(s JobState) bool {
+	return slices.Contains(TerminalJobStates, s)
+}
 
 type PullPolicy string
 
@@ -84,8 +98,8 @@ type JobRepository interface {
 	GetByID(ctx context.Context, id string) (*Job, error)
 	ListByOrg(ctx context.Context, orgID string) ([]Job, error)
 	ListByAgent(ctx context.Context, agentID string) ([]Job, error)
-	UpdateState(ctx context.Context, id string, state JobState, msg string, exitCode *int32, finishedAt *time.Time) error
-	SetStarted(ctx context.Context, id string, at time.Time) error
+	UpdateState(ctx context.Context, id string, state JobState, msg string, exitCode *int32, finishedAt *time.Time) (bool, error)
+	SetStarted(ctx context.Context, id string, at time.Time) (bool, error)
 }
 
 type JobService interface {

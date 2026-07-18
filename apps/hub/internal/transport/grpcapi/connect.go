@@ -106,7 +106,29 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 		if len(logBuf) == 0 {
 			return
 		}
-		_ = s.svc.JobLog.IngestChunks(context.Background(), logBuf)
+		if err := s.svc.JobLog.IngestChunks(context.Background(), logBuf); err == nil {
+			// One job.log event per job per flush batch — never per line,
+			// or a chatty job would flood the 64-slot subscriber buffers.
+			byJob := make(map[string][]events.LogLine)
+			for _, l := range logBuf {
+				byJob[l.JobID] = append(byJob[l.JobID], events.LogLine{
+					Line:      l.Line,
+					Stream:    string(l.Stream),
+					Sequence:  l.Sequence,
+					Timestamp: l.Timestamp,
+				})
+			}
+			for jobID, lines := range byJob {
+				s.bus.Publish(events.Event{
+					Type:    events.JobLog,
+					OrgID:   orgID,
+					AgentID: agent.ID,
+					JobID:   jobID,
+					At:      time.Now(),
+					Payload: events.JobLogPayload{Lines: lines},
+				})
+			}
+		}
 		logBuf = logBuf[:0]
 	}
 
