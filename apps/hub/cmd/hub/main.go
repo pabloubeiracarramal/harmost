@@ -98,7 +98,18 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	g.GracefulStop()
+	// GracefulStop alone would hang forever: agent bidi streams never end on
+	// their own, and the held port makes a hub restart fail to bind.
+	grpcDone := make(chan struct{})
+	go func() {
+		g.GracefulStop()
+		close(grpcDone)
+	}()
+	select {
+	case <-grpcDone:
+	case <-time.After(5 * time.Second):
+		g.Stop()
+	}
 	if err := h.Shutdown(ctx); err != nil {
 		log.Printf("http shutdown: %v", err)
 	}
