@@ -627,11 +627,14 @@ func (*AgentMessage_Pong) isAgentMessage_Payload() {}
 
 // First message sent by the agent after the stream is opened.
 type AgentHello struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	Hostname      string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Version     string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Hostname    string                 `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	// IDs of jobs still executing on this agent, so the hub can reconcile
+	// its job table after a reconnect. Empty on a fresh start.
+	RunningJobIds []string `protobuf:"bytes,5,rep,name=running_job_ids,json=runningJobIds,proto3" json:"running_job_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -692,6 +695,13 @@ func (x *AgentHello) GetHostname() string {
 		return x.Hostname
 	}
 	return ""
+}
+
+func (x *AgentHello) GetRunningJobIds() []string {
+	if x != nil {
+		return x.RunningJobIds
+	}
+	return nil
 }
 
 type JobStatusUpdate struct {
@@ -1308,13 +1318,14 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\tlog_chunk\x18\x03 \x01(\v2\x14.harmost.v1.LogChunkH\x00R\blogChunk\x125\n" +
 	"\theartbeat\x18\x04 \x01(\v2\x15.harmost.v1.HeartbeatH\x00R\theartbeat\x12&\n" +
 	"\x04pong\x18\x05 \x01(\v2\x10.harmost.v1.PongH\x00R\x04pongB\t\n" +
-	"\apayload\"x\n" +
+	"\apayload\"\xa0\x01\n" +
 	"\n" +
 	"AgentHello\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1a\n" +
-	"\bhostname\x18\x04 \x01(\tR\bhostname\"\xc5\x01\n" +
+	"\bhostname\x18\x04 \x01(\tR\bhostname\x12&\n" +
+	"\x0frunning_job_ids\x18\x05 \x03(\tR\rrunningJobIds\"\xc5\x01\n" +
 	"\x0fJobStatusUpdate\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12*\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x14.harmost.v1.JobStateR\x05state\x128\n" +

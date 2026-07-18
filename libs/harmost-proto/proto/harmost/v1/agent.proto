@@ -58,6 +58,9 @@ message AgentHello {
   string description = 2;
   string version     = 3;
   string hostname    = 4;
+  // IDs of jobs still executing on this agent, so the hub can reconcile
+  // its job table after a reconnect. Empty on a fresh start.
+  repeated string running_job_ids = 5;
 }
 
 message JobStatusUpdate {
