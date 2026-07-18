@@ -4,12 +4,14 @@
 
 ## Current Focus
 
-MVP push — see [docs/roadmap.md](roadmap.md). M2 (job lifecycle & live events, #10/#25) implemented on 2026-07-18 on `feat/job-lifecycle-events` (plan: [docs/plans/m2-job-lifecycle.md](plans/m2-job-lifecycle.md)): lifecycle resilience (reconcile-on-reconnect, orphan sweeper, offline dispatch rejection) plus `job.status`/`job.log` WebSocket events. Manual E2E pending. Next: M3 (jobs UI).
+MVP push — see [docs/roadmap.md](roadmap.md). M2 (job lifecycle & live events, #10/#25) implemented and verified E2E on 2026-07-18 on `feat/job-lifecycle-events` (plan: [docs/plans/m2-job-lifecycle.md](plans/m2-job-lifecycle.md)): all 9 scenarios pass — WS status/log events, 409/404 dispatch rejection, hub restart mid-job (reconcile no-op), terminal status across outage, reconcile fails killed-agent jobs (~15s), sweeper (~2.5m), fresh dispatch survives reconcile window, stale update on terminal job is a no-op. E2E also surfaced and fixed a shutdown hang (see below). Next: M3 (jobs UI).
 
 ## Recent Changes
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-07-18 | hub | Bounded gRPC shutdown — `GracefulStop` never returns while agent bidi streams are open, so a restarting hub held :8080 and the new process failed to bind; graceful phase now capped at 5s then hard `Stop` (found during M2 E2E) |
+| 2026-07-18 | hub | `cmd/devtoken` — prints a signed JWT for headless API testing (`go run ./cmd/devtoken <user-id> <org-id>`, reads `JWT_SECRET` from env) |
 | 2026-07-18 | hub | Job events over WS (M2, #25) — `job.status` published from JobService only when a guarded update applies; `job.log` one event per job per flush batch; terminal-state guard moved into SQL (`state NOT IN terminal`, RowsAffected = applied) with `domain.IsTerminal` as the single source |
 | 2026-07-18 | hub | Lifecycle resilience (M2, #10) — dispatch rejects unknown/foreign agents (404, org-scoped lookup) and disconnected agents (409, no job row); `ReconcileAgent` 15s after hello fails jobs absent from `running_job_ids` (jobs created after the hello exempt); 30s orphan sweeper fails jobs on agents offline >2m; startup `MarkAllOffline` recovers crash leftovers |
 | 2026-07-18 | agent | Process-lifetime send queue (M2) — statusCh/logCh moved from per-Connect closure onto Client so job goroutines survive reconnects; hello reports `running_job_ids`; failed StatusUpdate sends stashed and resent on reconnect; terminal statuses evict oldest on overflow instead of dropping |
