@@ -71,7 +71,9 @@ func (m *Manager) run(ctx context.Context, cancel context.CancelFunc, jobID stri
 		cancel()
 	}()
 
-	status := func(state harmostv1.JobState, message string, exitCode int32) {
+	// exitCode is nil when the job produced none (cancelled, timed out,
+	// infra failure) — exit 0 must survive as an explicit value.
+	status := func(state harmostv1.JobState, message string, exitCode *int32) {
 		send(&harmostv1.AgentMessage{Payload: &harmostv1.AgentMessage_StatusUpdate{
 			StatusUpdate: &harmostv1.JobStatusUpdate{
 				JobId:     jobID,
@@ -96,24 +98,25 @@ func (m *Manager) run(ctx context.Context, cancel context.CancelFunc, jobID stri
 		}})
 	}
 
-	status(harmostv1.JobState_JOB_STATE_ACCEPTED, "", 0)
+	status(harmostv1.JobState_JOB_STATE_ACCEPTED, "", nil)
 
 	exitCode, err := m.docker.Run(ctx, jobID, spec,
-		func(state harmostv1.JobState, message string) { status(state, message, 0) },
+		func(state harmostv1.JobState, message string) { status(state, message, nil) },
 		logLine,
 	)
 
+	code := int32(exitCode)
 	switch {
 	case err == nil && exitCode == 0:
-		status(harmostv1.JobState_JOB_STATE_SUCCEEDED, "", 0)
+		status(harmostv1.JobState_JOB_STATE_SUCCEEDED, "", &code)
 	case err == nil:
-		status(harmostv1.JobState_JOB_STATE_FAILED, fmt.Sprintf("exited with code %d", exitCode), int32(exitCode))
+		status(harmostv1.JobState_JOB_STATE_FAILED, fmt.Sprintf("exited with code %d", exitCode), &code)
 	case errors.Is(err, context.DeadlineExceeded):
-		status(harmostv1.JobState_JOB_STATE_TIMED_OUT, fmt.Sprintf("timed out after %ds", spec.TimeoutSeconds), 0)
+		status(harmostv1.JobState_JOB_STATE_TIMED_OUT, fmt.Sprintf("timed out after %ds", spec.TimeoutSeconds), nil)
 	case errors.Is(err, context.Canceled):
-		status(harmostv1.JobState_JOB_STATE_CANCELLED, "", 0)
+		status(harmostv1.JobState_JOB_STATE_CANCELLED, "", nil)
 	default:
-		status(harmostv1.JobState_JOB_STATE_FAILED, err.Error(), 0)
+		status(harmostv1.JobState_JOB_STATE_FAILED, err.Error(), nil)
 	}
 
 }

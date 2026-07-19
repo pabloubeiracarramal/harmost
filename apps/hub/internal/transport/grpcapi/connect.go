@@ -184,10 +184,7 @@ func (s *Server) handleMessage(
 			State:     protoStateToJobState(u.State),
 			Message:   u.Message,
 			Timestamp: u.Timestamp.AsTime(),
-		}
-		if u.ExitCode != 0 {
-			ec := u.ExitCode
-			in.ExitCode = &ec
+			ExitCode:  u.ExitCode,
 		}
 		_ = s.svc.Job.HandleStatusUpdate(ctx, in)
 
