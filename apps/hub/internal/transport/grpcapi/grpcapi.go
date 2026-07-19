@@ -48,6 +48,19 @@ func (s *Server) Dispatch(ctx context.Context, agentID string, job *domain.Job) 
 	})
 }
 
+// Cancel asks a currently-connected agent to cancel a job.
+func (s *Server) Cancel(ctx context.Context, agentID, jobID string) error {
+	send, ok := s.reg.get(agentID)
+	if !ok {
+		return fmt.Errorf("agent %s is not connected", agentID)
+	}
+	return send(&harmostv1.HubMessage{
+		Payload: &harmostv1.HubMessage_CancelJob{
+			CancelJob: &harmostv1.CancelJobRequest{JobId: jobID},
+		},
+	})
+}
+
 // ─── registry ────────────────────────────────────────────────────────────────
 
 type sendFn func(*harmostv1.HubMessage) error

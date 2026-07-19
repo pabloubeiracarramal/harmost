@@ -71,6 +71,10 @@ func (s *UserService) SignUpOrLogin(ctx context.Context, profile domain.GitHubPr
 	return &user, &org, err
 }
 
+func (s *UserService) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	return s.userRepo.GetByID(ctx, id)
+}
+
 func (s *UserService) personalOrg(ctx context.Context, userID string) (*domain.Org, error) {
 	orgs, err := s.orgRepo.ListByUserID(ctx, userID)
 	if err != nil {
