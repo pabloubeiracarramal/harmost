@@ -1,9 +1,9 @@
-import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router';
+import { createFileRoute, redirect, Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
-import { isAuthenticated, clearToken } from '@/lib/auth';
+import { isAuthenticated } from '@/lib/auth';
 import { api, type Agent } from '@/lib/api';
-import { useAgentEvents, type AgentEvent } from '@/hooks/useAgentEvents';
+import { useHubEvents, type HubEvent } from '@/hooks/useHubEvents';
+import { AppShell } from '@/components/AppShell';
 
 export const Route = createFileRoute('/dashboard')({
   beforeLoad: () => {
@@ -13,7 +13,6 @@ export const Route = createFileRoute('/dashboard')({
 });
 
 function Dashboard() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
@@ -21,75 +20,51 @@ function Dashboard() {
     queryFn: () => api.get<Agent[]>('/api/v1/agents'),
   });
 
-  const handleEvent = useCallback(
-    (e: AgentEvent) => {
-      queryClient.setQueryData<Agent[]>(['agents'], (prev = []) => {
-        if (e.type === 'agent.connected') {
-          return prev.map((a) =>
-            a.id === e.agent_id ? { ...a, status: 'online', last_seen_at: e.at } : a
-          );
-        }
-        if (e.type === 'agent.disconnected') {
-          return prev.map((a) =>
-            a.id === e.agent_id ? { ...a, status: 'offline' } : a
-          );
-        }
-        if (e.type === 'agent.heartbeat') {
-          return prev.map((a) =>
-            a.id === e.agent_id ? { ...a, last_seen_at: e.at } : a
-          );
-        }
-        return prev;
-      });
-    },
-    [queryClient]
-  );
-
-  useAgentEvents(handleEvent);
-
-  const handleLogout = () => {
-    clearToken();
-    navigate({ to: '/login' });
-  };
+  useHubEvents((e: HubEvent) => {
+    queryClient.setQueryData<Agent[]>(['agents'], (prev = []) => {
+      if (e.type === 'agent.connected') {
+        return prev.map((a) =>
+          a.id === e.agent_id ? { ...a, status: 'online', last_seen_at: e.at } : a
+        );
+      }
+      if (e.type === 'agent.disconnected') {
+        return prev.map((a) =>
+          a.id === e.agent_id ? { ...a, status: 'offline' } : a
+        );
+      }
+      if (e.type === 'agent.heartbeat') {
+        return prev.map((a) =>
+          a.id === e.agent_id ? { ...a, last_seen_at: e.at } : a
+        );
+      }
+      return prev;
+    });
+  });
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
-      <header className="border-b border-neutral-800 px-6 py-4">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-lg font-semibold">Harmost</h1>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-neutral-400 hover:text-white transition"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+    <AppShell>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Agents</h2>
+        <a
+          href="/device"
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
+        >
+          Pair new agent
+        </a>
+      </div>
 
-      <main className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Agents</h2>
-          <a
-            href="/device"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
-          >
-            Pair new agent
-          </a>
+      {isLoading ? (
+        <p className="text-neutral-500">Loading…</p>
+      ) : agents.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {agents.map((agent) => (
+            <AgentCard key={agent.id} agent={agent} />
+          ))}
         </div>
-
-        {isLoading ? (
-          <p className="text-neutral-500">Loading…</p>
-        ) : agents.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {agents.map((agent) => (
-              <AgentCard key={agent.id} agent={agent} />
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
+      )}
+    </AppShell>
   );
 }
 
