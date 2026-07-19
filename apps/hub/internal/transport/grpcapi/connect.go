@@ -2,6 +2,7 @@ package grpcapi
 
 import (
 	"context"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,11 @@ import (
 const (
 	logFlushInterval = 500 * time.Millisecond
 	logBatchSize     = 500
+
+	// reconcileDelay is how long after a hello the hub waits before failing
+	// jobs the agent did not report — long enough for terminal statuses
+	// queued agent-side during an outage to land first.
+	reconcileDelay = 15 * time.Second
 )
 
 // Connect is the bidirectional stream handler. Each connected agent gets one
@@ -64,6 +70,17 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 		At:      time.Now(),
 	})
 
+	// Reconcile against the hello's running set once queued terminal
+	// statuses have had a chance to land. context.Background(): the answer
+	// is valid even if this stream has dropped again by then.
+	helloAt := time.Now()
+	runningIDs := hello.Hello.RunningJobIds
+	time.AfterFunc(reconcileDelay, func() {
+		if err := s.svc.Job.ReconcileAgent(context.Background(), agent.ID, runningIDs, helloAt); err != nil {
+			log.Printf("reconcile agent %s: %v", agent.ID, err)
+		}
+	})
+
 	var sendMu sync.Mutex
 	safeSend := func(msg *harmostv1.HubMessage) error {
 		sendMu.Lock()
@@ -106,7 +123,29 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 		if len(logBuf) == 0 {
 			return
 		}
-		_ = s.svc.JobLog.IngestChunks(context.Background(), logBuf)
+		if err := s.svc.JobLog.IngestChunks(context.Background(), logBuf); err == nil {
+			// One job.log event per job per flush batch — never per line,
+			// or a chatty job would flood the 64-slot subscriber buffers.
+			byJob := make(map[string][]events.LogLine)
+			for _, l := range logBuf {
+				byJob[l.JobID] = append(byJob[l.JobID], events.LogLine{
+					Line:      l.Line,
+					Stream:    string(l.Stream),
+					Sequence:  l.Sequence,
+					Timestamp: l.Timestamp,
+				})
+			}
+			for jobID, lines := range byJob {
+				s.bus.Publish(events.Event{
+					Type:    events.JobLog,
+					OrgID:   orgID,
+					AgentID: agent.ID,
+					JobID:   jobID,
+					At:      time.Now(),
+					Payload: events.JobLogPayload{Lines: lines},
+				})
+			}
+		}
 		logBuf = logBuf[:0]
 	}
 

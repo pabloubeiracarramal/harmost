@@ -27,9 +27,33 @@ func main() {
 	}
 
 	bus := events.New()
-	svc := service.New(db, cfg.FrontendURL)
+	svc := service.New(db, cfg.FrontendURL, bus)
 	grpcSrv := grpcapi.New(svc, bus)
 	httpSrv := httpapi.New(svc, grpcSrv, bus, cfg)
+
+	// No streams exist yet — flip agents left online by a previous crash so
+	// the orphan sweeper can see their jobs.
+	if err := svc.Agent.MarkAllOffline(context.Background()); err != nil {
+		log.Printf("mark agents offline: %v", err)
+	}
+
+	// Orphan sweeper: fail jobs whose agent has been offline > 2m.
+	sweepCtx, stopSweeper := context.WithCancel(context.Background())
+	defer stopSweeper()
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-sweepCtx.Done():
+				return
+			case <-ticker.C:
+				if err := svc.Job.SweepOrphans(sweepCtx, 2*time.Minute); err != nil {
+					log.Printf("sweep orphans: %v", err)
+				}
+			}
+		}
+	}()
 
 	// ── gRPC ────────────────────────────────────────────────────────────────
 	g := grpc.NewServer()
@@ -74,7 +98,18 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	g.GracefulStop()
+	// GracefulStop alone would hang forever: agent bidi streams never end on
+	// their own, and the held port makes a hub restart fail to bind.
+	grpcDone := make(chan struct{})
+	go func() {
+		g.GracefulStop()
+		close(grpcDone)
+	}()
+	select {
+	case <-grpcDone:
+	case <-time.After(5 * time.Second):
+		g.Stop()
+	}
 	if err := h.Shutdown(ctx); err != nil {
 		log.Printf("http shutdown: %v", err)
 	}

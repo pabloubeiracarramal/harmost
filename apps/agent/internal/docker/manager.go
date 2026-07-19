@@ -124,3 +124,15 @@ func (m *Manager) RunningJobs() int {
 	defer m.mu.Unlock()
 	return len(m.jobs)
 }
+
+// RunningJobIDs returns the IDs of jobs currently executing, for the
+// AgentHello reconciliation set.
+func (m *Manager) RunningJobIDs() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	ids := make([]string, 0, len(m.jobs))
+	for id := range m.jobs {
+		ids = append(ids, id)
+	}
+	return ids
+}

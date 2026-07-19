@@ -48,8 +48,8 @@ A CLI tool that installs itself as a system service (via `kardianos/service`), m
 
 ## Known Gotchas
 <!-- Add sharp edges, non-obvious invariants, or past bugs here -->
-- gRPC streams allow only ONE sending goroutine. All async sends (job status, logs, pong) must go through the `sendCh` channel in `internal/grpc/client.go` — never call `stream.Send` from another goroutine.
-- Jobs are bound to the daemon's root context, not the stream's: they survive hub reconnects. Messages sent while the stream is down are dropped once the 256-message buffer fills.
+- gRPC streams allow only ONE sending goroutine. All async sends (job status, logs, pong) must go through `(*Client).Send` in `internal/grpc/client.go`, which routes into the process-lifetime `statusCh`/`logCh` — never call `stream.Send` from another goroutine.
+- Jobs are bound to the daemon's root context, not the stream's: they survive hub reconnects. `statusCh` (256) and `logCh` (1024) outlive individual connections, so messages queued during an outage are delivered after reconnect. On overflow log lines are dropped; terminal StatusUpdates evict the oldest queued message instead of being dropped, and a StatusUpdate whose `stream.Send` failed is stashed in `pendingStatus` and resent first on the next connection.
 - `docker.Run` returns `(exitCode, nil)` for a non-zero container exit — a non-nil error means the lifecycle itself failed. Terminal JobStates are decided in `manager.go`, never in `run.go`.
 
 ## Connections to Other Apps

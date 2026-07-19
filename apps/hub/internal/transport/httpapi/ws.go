@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/harmost/hub/internal/auth"
-	"github.com/harmost/hub/internal/events"
 )
 
 var upgrader = websocket.Upgrader{
@@ -89,11 +88,4 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-}
-
-// wsEvent is the shape sent to frontend clients.
-type wsEvent struct {
-	Type    events.EventType `json:"type"`
-	AgentID string           `json:"agent_id"`
-	At      time.Time        `json:"at"`
 }

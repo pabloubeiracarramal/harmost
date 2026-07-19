@@ -43,6 +43,8 @@ nx run agent:build
 Open `apps/hub/api.http` in VS Code (REST Client extension) — every endpoint has
 a ready-made request. Get a JWT by logging in at `http://localhost:4200/login`
 and copying the `?token=` value from the callback URL (or from localStorage).
+Headless alternative: `go run ./cmd/devtoken <user-id> <org-id>` from `apps/hub/`
+(direnv loads `JWT_SECRET`); look up the IDs in the `users`/`orgs` tables.
 
 ### Database
 - **Browser:** Adminer at http://localhost:8081 (server `db`, user/pass `postgres`).

@@ -18,6 +18,7 @@ import (
 // Dispatcher is satisfied by grpcapi.Server — keeps httpapi free of a grpcapi import.
 type Dispatcher interface {
 	Dispatch(ctx context.Context, agentID string, job *domain.Job) error
+	Connected(agentID string) bool
 }
 
 type Server struct {

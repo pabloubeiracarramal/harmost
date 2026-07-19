@@ -80,19 +80,35 @@ func (s *Server) dispatchJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Reject before creating a row: unknown/foreign agent → 404 (lookup is
+	// org-scoped), known but disconnected agent → 409.
+	if _, err := s.svc.Agent.GetByID(r.Context(), orgID, req.AgentID); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			jsonError(w, http.StatusNotFound, "agent not found")
+			return
+		}
+		jsonError(w, http.StatusInternalServerError, "failed to look up agent")
+		return
+	}
+	if !s.dispatcher.Connected(req.AgentID) {
+		jsonError(w, http.StatusConflict, "agent is not connected")
+		return
+	}
+
 	job, err := s.svc.Job.Dispatch(r.Context(), orgID, req.AgentID, req.Spec)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to create job")
 		return
 	}
 
-	// Best-effort: send DispatchJobRequest to the agent's active stream.
-	// If the agent is offline the job stays in accepted state.
+	// Fallback for the check-to-send race: the agent may drop between the
+	// Connected check above and this send.
 	if err := s.dispatcher.Dispatch(r.Context(), req.AgentID, job); err != nil {
 		_ = s.svc.Job.HandleStatusUpdate(r.Context(), domain.JobStatusInput{
-			JobID:   job.ID,
-			State:   domain.JobStateFailed,
-			Message: "agent not connected: " + err.Error(),
+			JobID:     job.ID,
+			State:     domain.JobStateFailed,
+			Message:   "agent not connected: " + err.Error(),
+			Timestamp: time.Now(),
 		})
 		jsonError(w, http.StatusBadGateway, "agent not connected")
 		return

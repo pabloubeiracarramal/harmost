@@ -4,12 +4,19 @@
 
 ## Current Focus
 
-MVP push — see [docs/roadmap.md](roadmap.md). M1 (agent Docker executor, #16/#17) implemented and verified E2E on 2026-07-13: hub REST dispatch → gRPC stream → agent container run → status/logs persisted (success, non-zero exit, container cleanup all confirmed). Next: M2.
+MVP push — see [docs/roadmap.md](roadmap.md). M2 (job lifecycle & live events, #10/#25) implemented and verified E2E on 2026-07-18 on `feat/job-lifecycle-events` (plan: [docs/plans/m2-job-lifecycle.md](plans/m2-job-lifecycle.md)): all 9 scenarios pass — WS status/log events, 409/404 dispatch rejection, hub restart mid-job (reconcile no-op), terminal status across outage, reconcile fails killed-agent jobs (~15s), sweeper (~2.5m), fresh dispatch survives reconcile window, stale update on terminal job is a no-op. E2E also surfaced and fixed a shutdown hang (see below). Next: M3 (jobs UI).
 
 ## Recent Changes
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-07-18 | hub | Bounded gRPC shutdown — `GracefulStop` never returns while agent bidi streams are open, so a restarting hub held :8080 and the new process failed to bind; graceful phase now capped at 5s then hard `Stop` (found during M2 E2E) |
+| 2026-07-18 | hub | `cmd/devtoken` — prints a signed JWT for headless API testing (`go run ./cmd/devtoken <user-id> <org-id>`, reads `JWT_SECRET` from env) |
+| 2026-07-18 | hub | Job events over WS (M2, #25) — `job.status` published from JobService only when a guarded update applies; `job.log` one event per job per flush batch; terminal-state guard moved into SQL (`state NOT IN terminal`, RowsAffected = applied) with `domain.IsTerminal` as the single source |
+| 2026-07-18 | hub | Lifecycle resilience (M2, #10) — dispatch rejects unknown/foreign agents (404, org-scoped lookup) and disconnected agents (409, no job row); `ReconcileAgent` 15s after hello fails jobs absent from `running_job_ids` (jobs created after the hello exempt); 30s orphan sweeper fails jobs on agents offline >2m; startup `MarkAllOffline` recovers crash leftovers |
+| 2026-07-18 | agent | Process-lifetime send queue (M2) — statusCh/logCh moved from per-Connect closure onto Client so job goroutines survive reconnects; hello reports `running_job_ids`; failed StatusUpdate sends stashed and resent on reconnect; terminal statuses evict oldest on overflow instead of dropping |
+| 2026-07-18 | proto | `AgentHello.running_job_ids = 5` (backward compatible) for hub-side reconciliation |
+| 2026-07-18 | hub, agent | First unit tests (testify) — JobService status/reconcile/sweep, event bus scoping/overflow, agent Send routing + eviction |
 | 2026-07-13 | docs | Docs tidy-up — root README written (was empty); root CLAUDE.md overview/monorepo sections filled; architecture.md corrected (job dispatch is REST not WS, webhooks marked planned, JWT auth not DB sessions, GORM not pgx, libs/harmost-proto documented, ADRs 0004–0006 linked); roadmap M1 marked done and stale Docker blocker cleared; app READMEs/CLAUDE.md files synced (agent `containers` + `internal/docker`, hub webhook mention removed, front routes + real Nx targets) |
 | 2026-07-13 | agent | Docker executor (M1) — run.go full container lifecycle (pull per policy → create → start → log streaming with stdout/stderr demux → wait, force-remove cleanup); manager.go Dispatch/Cancel with per-job timeout ctx and terminal JobState mapping |
 | 2026-07-13 | agent | gRPC job wiring — DispatchJob/CancelJob handled, job status/log messages funneled through send channel (single-sender stream), Ping now answered with Pong; daemon creates Docker+Manager at boot (degrades gracefully without Docker) |
@@ -52,7 +59,8 @@ MVP push — see [docs/roadmap.md](roadmap.md). M1 (agent Docker executor, #16/#
 - [ ] WebSocket auto-reconnect on the frontend (currently closes on error)
 - [ ] JWT refresh / token expiry handling in frontend (tokens expire in 24h)
 - [ ] GET /api/v1/me — return current user profile
-- [ ] Job update loss on disconnect — status/log sends are dropped once the 256-message buffer fills while the stream is down; needs hub-side reconciliation on reconnect
+- [ ] Per-job WS log filtering (M3) — clients filter on `job_id` meanwhile
+- [ ] Cancel-on-reconcile-mismatch — a job failed by the sweeper during a long partition keeps running on the agent; its late terminal status is dropped by the guard and no CancelJob is sent (accepted M2 trade-off)
 - [ ] JobSpec HostConfig mapping — volume mounts, resource limits, network mode, privileged not yet translated (post-MVP per spec.go)
 - [ ] Multi-org support — org switcher; users currently always use their personal org
 
