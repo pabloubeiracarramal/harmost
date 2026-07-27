@@ -705,12 +705,14 @@ func (x *AgentHello) GetRunningJobIds() []string {
 }
 
 type JobStatusUpdate struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	JobId         string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	State         JobState               `protobuf:"varint,2,opt,name=state,proto3,enum=harmost.v1.JobState" json:"state,omitempty"`
-	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	ExitCode      int32                  `protobuf:"varint,5,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	JobId     string                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	State     JobState               `protobuf:"varint,2,opt,name=state,proto3,enum=harmost.v1.JobState" json:"state,omitempty"`
+	Timestamp *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Message   string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	// Presence matters: exit 0 (success) is distinct from "no exit code"
+	// (cancelled, timed out, infra failure).
+	ExitCode      *int32 `protobuf:"varint,5,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -774,8 +776,8 @@ func (x *JobStatusUpdate) GetMessage() string {
 }
 
 func (x *JobStatusUpdate) GetExitCode() int32 {
-	if x != nil {
-		return x.ExitCode
+	if x != nil && x.ExitCode != nil {
+		return *x.ExitCode
 	}
 	return 0
 }
@@ -1325,13 +1327,15 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1a\n" +
 	"\bhostname\x18\x04 \x01(\tR\bhostname\x12&\n" +
-	"\x0frunning_job_ids\x18\x05 \x03(\tR\rrunningJobIds\"\xc5\x01\n" +
+	"\x0frunning_job_ids\x18\x05 \x03(\tR\rrunningJobIds\"\xd8\x01\n" +
 	"\x0fJobStatusUpdate\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12*\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x14.harmost.v1.JobStateR\x05state\x128\n" +
 	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\x12\x1b\n" +
-	"\texit_code\x18\x05 \x01(\x05R\bexitCode\"\xba\x01\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12 \n" +
+	"\texit_code\x18\x05 \x01(\x05H\x00R\bexitCode\x88\x01\x01B\f\n" +
+	"\n" +
+	"_exit_code\"\xba\x01\n" +
 	"\bLogChunk\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\tR\x04line\x128\n" +
@@ -1503,6 +1507,7 @@ func file_harmost_v1_agent_proto_init() {
 		(*AgentMessage_Heartbeat)(nil),
 		(*AgentMessage_Pong)(nil),
 	}
+	file_harmost_v1_agent_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

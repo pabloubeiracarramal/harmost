@@ -4,12 +4,16 @@
 
 ## Current Focus
 
-MVP push — see [docs/roadmap.md](roadmap.md). M2 (job lifecycle & live events, #10/#25) implemented and verified E2E on 2026-07-18 on `feat/job-lifecycle-events` (plan: [docs/plans/m2-job-lifecycle.md](plans/m2-job-lifecycle.md)): all 9 scenarios pass — WS status/log events, 409/404 dispatch rejection, hub restart mid-job (reconcile no-op), terminal status across outage, reconcile fails killed-agent jobs (~15s), sweeper (~2.5m), fresh dispatch survives reconcile window, stale update on terminal job is a no-op. E2E also surfaced and fixed a shutdown hang (see below). Next: M3 (jobs UI).
+MVP push — see [docs/roadmap.md](roadmap.md). M3 (jobs UI, #21/#22/#26) implemented and verified E2E on 2026-07-19 on `feat/jobs-ui`: hub `GET /me` + `POST /jobs/{id}/cancel`, front jobs list/dispatch form/job detail with live log viewer, WS auto-reconnect, 401 → login redirect. E2E: 17/17 REST/WS checks (me, 401, dispatch 201, WS status transitions to terminal, WS log events, backfill, exit_code=0 persisted, cancel 202/409/404) and 8/8 browser UI checks (dispatch via form → live logs → succeeded badge → exit code row; cancel button → cancelled badge; list badges; header identity). E2E surfaced and fixed an exit-code presence bug (see below). Next: M4 (TLS on gRPC, token revoke UI, rate limiting).
 
 ## Recent Changes
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-07-19 | proto, agent, hub | Exit code presence fix (found in M3 E2E) — `JobStatusUpdate.exit_code` was plain `int32`, and the hub dropped zeros (`if u.ExitCode != 0`), so successful jobs persisted `NULL`; now `optional int32`, the agent sends a pointer only when the container produced an exit code, and the hub forwards presence as-is |
+| 2026-07-19 | hub | `GET /api/v1/me` (user profile from JWT claims) and `POST /api/v1/jobs/{id}/cancel` (org-scoped lookup, 409 on terminal state or disconnected agent, forwards `CancelJobRequest` over the gRPC stream; agent drives the state transition) (M3, #26/#21) |
+| 2026-07-19 | front | Jobs UI (M3, #21/#22) — `/jobs` list with live state badges, `/jobs/new` dispatch form (online agents, image/command/args/env/timeout), `/jobs/$id` detail with spec/timing/exit code, cancel button, and live log viewer (REST backfill + WS `job.log` append, sequence-deduped, stderr styling, auto-scroll with pause-on-scroll-up) |
+| 2026-07-19 | front | Session hardening (M3, #26) — `useHubEvents` WS hook with exponential-backoff auto-reconnect (replaces `useAgentEvents`), 401 responses clear the token and redirect to login, shared `AppShell` header with nav + `/me` user identity |
 | 2026-07-18 | hub | Bounded gRPC shutdown — `GracefulStop` never returns while agent bidi streams are open, so a restarting hub held :8080 and the new process failed to bind; graceful phase now capped at 5s then hard `Stop` (found during M2 E2E) |
 | 2026-07-18 | hub | `cmd/devtoken` — prints a signed JWT for headless API testing (`go run ./cmd/devtoken <user-id> <org-id>`, reads `JWT_SECRET` from env) |
 | 2026-07-18 | hub | Job events over WS (M2, #25) — `job.status` published from JobService only when a guarded update applies; `job.log` one event per job per flush batch; terminal-state guard moved into SQL (`state NOT IN terminal`, RowsAffected = applied) with `domain.IsTerminal` as the single source |
@@ -56,10 +60,8 @@ MVP push — see [docs/roadmap.md](roadmap.md). M2 (job lifecycle & live events,
 
 ## Pending / Backlog
 
-- [ ] WebSocket auto-reconnect on the frontend (currently closes on error)
-- [ ] JWT refresh / token expiry handling in frontend (tokens expire in 24h)
-- [ ] GET /api/v1/me — return current user profile
-- [ ] Per-job WS log filtering (M3) — clients filter on `job_id` meanwhile
+- [ ] Server-side per-job WS event filtering — hub fans out all org events to every client; clients filter on `job_id` (fine at MVP scale)
+- [ ] Org-scope `GET /jobs/{id}` and `GET /jobs/{id}/logs` — currently any authenticated user can read any job by ID (cancel is org-scoped; candidate for M4 hardening)
 - [ ] Cancel-on-reconcile-mismatch — a job failed by the sweeper during a long partition keeps running on the agent; its late terminal status is dropped by the guard and no CancelJob is sent (accepted M2 trade-off)
 - [ ] JobSpec HostConfig mapping — volume mounts, resource limits, network mode, privileged not yet translated (post-MVP per spec.go)
 - [ ] Multi-org support — org switcher; users currently always use their personal org

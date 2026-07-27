@@ -68,7 +68,9 @@ message JobStatusUpdate {
   JobState                  state      = 2;
   google.protobuf.Timestamp timestamp  = 3;
   string                    message    = 4;
-  int32                     exit_code  = 5;
+  // Presence matters: exit 0 (success) is distinct from "no exit code"
+  // (cancelled, timed out, infra failure).
+  optional int32            exit_code  = 5;
 }
 
 message LogChunk {

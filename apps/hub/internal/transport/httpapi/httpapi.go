@@ -18,6 +18,7 @@ import (
 // Dispatcher is satisfied by grpcapi.Server — keeps httpapi free of a grpcapi import.
 type Dispatcher interface {
 	Dispatch(ctx context.Context, agentID string, job *domain.Job) error
+	Cancel(ctx context.Context, agentID, jobID string) error
 	Connected(agentID string) bool
 }
 
@@ -53,12 +54,15 @@ func (s *Server) Routes() http.Handler {
 
 		r.Post("/api/v1/device/approve", s.handleDeviceApprove)
 
+		r.Get("/api/v1/me", s.getMe)
+
 		r.Get("/api/v1/agents", s.listAgents)
 		r.Get("/api/v1/agents/{id}", s.getAgent)
 
 		r.Post("/api/v1/jobs", s.dispatchJob)
 		r.Get("/api/v1/jobs", s.listJobs)
 		r.Get("/api/v1/jobs/{id}", s.getJob)
+		r.Post("/api/v1/jobs/{id}/cancel", s.cancelJob)
 		r.Get("/api/v1/jobs/{id}/logs", s.getJobLogs)
 	})
 

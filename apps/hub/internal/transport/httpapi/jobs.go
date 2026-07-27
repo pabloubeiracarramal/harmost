@@ -146,6 +146,34 @@ func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, toJobResponse(*job))
 }
 
+func (s *Server) cancelJob(w http.ResponseWriter, r *http.Request) {
+	orgID := orgIDFromCtx(r.Context())
+	id := chi.URLParam(r, "id")
+
+	job, err := s.svc.Job.GetByID(r.Context(), id)
+	if err != nil || job.OrgID != orgID {
+		if errors.Is(err, domain.ErrNotFound) || err == nil {
+			jsonError(w, http.StatusNotFound, "job not found")
+			return
+		}
+		jsonError(w, http.StatusInternalServerError, "failed to get job")
+		return
+	}
+	if domain.IsTerminal(job.State) {
+		jsonError(w, http.StatusConflict, "job already finished")
+		return
+	}
+	if err := s.dispatcher.Cancel(r.Context(), job.AgentID, job.ID); err != nil {
+		jsonError(w, http.StatusConflict, "agent is not connected")
+		return
+	}
+
+	// The agent drives the state transition (stopping → cancelled) via the
+	// gRPC stream; 202 reflects that cancellation is underway, not done.
+	w.WriteHeader(http.StatusAccepted)
+	jsonOK(w, toJobResponse(*job))
+}
+
 func (s *Server) getJobLogs(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	logs, err := s.svc.JobLog.ListByJob(r.Context(), id)

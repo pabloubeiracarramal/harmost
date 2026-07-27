@@ -1,9 +1,9 @@
-import { createFileRoute, redirect, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, redirect, Link } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import { isAuthenticated } from '@/lib/auth';
 import { api, type Agent } from '@/lib/api';
-import { useAgentEvents, type AgentEvent } from '@/hooks/useAgentEvents';
+import { useHubEvents } from '@/hooks/useHubEvents';
+import { AppShell } from '@/components/AppShell';
 
 export const Route = createFileRoute('/agents/$id')({
   beforeLoad: () => {
@@ -84,7 +84,6 @@ function StatRow({ label, value }: { label: string; value: string }) {
 
 function AgentDetail() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: agent, isLoading } = useQuery<Agent>({
@@ -93,27 +92,25 @@ function AgentDetail() {
     refetchInterval: 35_000,
   });
 
-  const handleEvent = useCallback(
-    (e: AgentEvent) => {
+  useHubEvents((e) => {
+    if (e.type.startsWith('agent.') && e.agent_id === id) {
       queryClient.invalidateQueries({ queryKey: ['agents', id] });
-    },
-    [queryClient, id]
-  );
-  useAgentEvents(handleEvent);
+    }
+  });
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+      <AppShell>
         <p className="text-neutral-500">Loading…</p>
-      </div>
+      </AppShell>
     );
   }
 
   if (!agent) {
     return (
-      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+      <AppShell>
         <p className="text-neutral-500">Agent not found.</p>
-      </div>
+      </AppShell>
     );
   }
 
@@ -126,18 +123,15 @@ function AgentDetail() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white">
-      <header className="border-b border-neutral-800 px-6 py-4">
-        <div className="mx-auto flex max-w-3xl items-center gap-4">
+    <AppShell>
+      <div className="mx-auto max-w-3xl space-y-8">
+        <div className="flex items-center gap-4">
           <Link to="/dashboard" className="text-neutral-400 hover:text-white transition text-sm">
             ← Agents
           </Link>
           <span className="text-neutral-700">/</span>
           <span className="text-sm font-medium truncate">{agent.name !== 'pending' ? agent.name : agent.hostname || 'Unnamed'}</span>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -204,7 +198,7 @@ function AgentDetail() {
             <StatRow label="Last seen" value={new Date(agent.last_seen_at).toLocaleString()} />
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

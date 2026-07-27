@@ -1,13 +1,16 @@
 # Front App — AI Context
 
 ## What this app does
-Web UI for Harmost: GitHub OAuth login, agent dashboard with live status, agent detail with live metric gauges, and device-flow approval for agent pairing. Talks to the hub via REST (JWT bearer) for commands and a WebSocket (`/ws?token=<jwt>`) for live events; the Vite dev server proxies `/auth`, `/api`, and `/ws` to the hub on :8080.
+Web UI for Harmost: GitHub OAuth login, agent dashboard with live status, agent detail with live metric gauges, device-flow approval for agent pairing, and jobs (dispatch form, list with live state badges, detail with live log viewer). Talks to the hub via REST (JWT bearer) for commands and a WebSocket (`/ws?token=<jwt>`) for live events; the Vite dev server proxies `/auth`, `/api`, and `/ws` to the hub on :8080.
 
 ## Routes
 - `/` — home; `/login` — GitHub OAuth button; `/auth/callback` — stores JWT, redirects
 - `/dashboard` — agent list (REST) + live status (WebSocket)
 - `/agents/$id` — agent detail with live metric gauges
+- `/jobs` — jobs list with live state badges; `/jobs/new` — dispatch form; `/jobs/$id` — job detail + live log viewer
 - `/device?code=XXXX` — device-flow approval page for agent pairing
+
+Authenticated pages share `src/components/AppShell.tsx` (header nav + `/me` identity); live events come through `src/hooks/useHubEvents.ts` (auto-reconnecting `/ws` subscription).
 
 ## Runtime
 - Framework: **React 19 + TypeScript 5.7**

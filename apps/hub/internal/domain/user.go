@@ -28,4 +28,5 @@ type UserRepository interface {
 
 type UserService interface {
 	SignUpOrLogin(ctx context.Context, profile GitHubProfile) (*User, *Org, error)
+	GetByID(ctx context.Context, id string) (*User, error)
 }
