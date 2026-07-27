@@ -13,6 +13,7 @@ import (
 )
 
 func init() {
+	pairCmd.Flags().Bool("insecure", false, "dial the hub's gRPC endpoint without TLS (local dev only)")
 	rootCmd.AddCommand(pairCmd)
 }
 
@@ -88,10 +89,12 @@ func runPair(cmd *cobra.Command, args []string) error {
 
 		if r.StatusCode == http.StatusOK && tok.AccessToken != "" {
 			fmt.Printf("\n  Paired successfully!\n")
+			insecure, _ := cmd.Flags().GetBool("insecure")
 			return config.Save(&config.Config{
 				HubAddr:  hubURL,
 				GRPCAddr: auth.GRPCAddr,
 				Token:    tok.AccessToken,
+				Insecure: insecure,
 			})
 		}
 

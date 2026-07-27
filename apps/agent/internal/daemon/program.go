@@ -62,7 +62,7 @@ func (p *AgentProgram) run(ctx context.Context) {
 		default:
 		}
 
-		if err := client.Connect(ctx, target, cfg.Token); err != nil {
+		if err := client.Connect(ctx, target, cfg.Token, cfg.Insecure); err != nil {
 			if ctx.Err() != nil {
 				return
 			}
