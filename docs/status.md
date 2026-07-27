@@ -4,12 +4,17 @@
 
 ## Current Focus
 
-MVP push — see [docs/roadmap.md](roadmap.md). M3 (jobs UI, #21/#22/#26) implemented and verified E2E on 2026-07-19 on `feat/jobs-ui`: hub `GET /me` + `POST /jobs/{id}/cancel`, front jobs list/dispatch form/job detail with live log viewer, WS auto-reconnect, 401 → login redirect. E2E: 17/17 REST/WS checks (me, 401, dispatch 201, WS status transitions to terminal, WS log events, backfill, exit_code=0 persisted, cancel 202/409/404) and 8/8 browser UI checks (dispatch via form → live logs → succeeded badge → exit code row; cancel button → cancelled badge; list badges; header identity). E2E surfaced and fixed an exit-code presence bug (see below). Next: M4 (TLS on gRPC, token revoke UI, rate limiting).
+MVP push — see [docs/roadmap.md](roadmap.md). M3 (jobs UI, #21/#22/#26) implemented and verified E2E on 2026-07-19 on `feat/jobs-ui`: hub `GET /me` + `POST /jobs/{id}/cancel`, front jobs list/dispatch form/job detail with live log viewer, WS auto-reconnect, 401 → login redirect. E2E: 17/17 REST/WS checks (me, 401, dispatch 201, WS status transitions to terminal, WS log events, backfill, exit_code=0 persisted, cancel 202/409/404) and 8/8 browser UI checks (dispatch via form → live logs → succeeded badge → exit code row; cancel button → cancelled badge; list badges; header identity). E2E surfaced and fixed an exit-code presence bug (see below). M4 (#27/#28) implemented on `feat/m4-security-hardening` on 2026-07-27: gRPC TLS (opt-in via env, agent `--insecure` for local dev), org-scoped agent-token list/revoke (hub + front UI), per-IP rate limiting on unauthenticated endpoints. Builds/lints/tests green on hub, agent, front; not yet E2E-verified against a real TLS deployment. Next: M5 (deployment & packaging).
 
 ## Recent Changes
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-07-27 | hub | gRPC TLS (M4, #27) — `GRPC_TLS_CERT_FILE`/`GRPC_TLS_KEY_FILE` env; serves TLS when both set, refuses to start if only one is, warns on plaintext when `ENV=production` |
+| 2026-07-27 | agent | gRPC TLS client (M4, #27) — `Connect` dials with the system cert pool by default; `agent pair --insecure` persists `insecure: true` in config for local dev (plaintext) |
+| 2026-07-27 | hub | Agent-token management (M4, #28) — `GET /api/v1/agent-tokens` + `POST /api/v1/agent-tokens/{id}/revoke`, org-scoped (fixed `AgentTokenRepo.Revoke` to filter by `org_id`, previously any org could revoke any token by ID); revocation takes effect on next validation, does not drop an already-open gRPC stream |
+| 2026-07-27 | front | `/tokens` — agent token list with revoke action (M4, #28) |
+| 2026-07-27 | hub | Per-IP rate limiting (M4, #28) — hand-rolled token bucket (no new dep) on `/auth/github*` and `/api/v1/device/*`, 429 + `Retry-After` on limit |
 | 2026-07-19 | proto, agent, hub | Exit code presence fix (found in M3 E2E) — `JobStatusUpdate.exit_code` was plain `int32`, and the hub dropped zeros (`if u.ExitCode != 0`), so successful jobs persisted `NULL`; now `optional int32`, the agent sends a pointer only when the container produced an exit code, and the hub forwards presence as-is |
 | 2026-07-19 | hub | `GET /api/v1/me` (user profile from JWT claims) and `POST /api/v1/jobs/{id}/cancel` (org-scoped lookup, 409 on terminal state or disconnected agent, forwards `CancelJobRequest` over the gRPC stream; agent drives the state transition) (M3, #26/#21) |
 | 2026-07-19 | front | Jobs UI (M3, #21/#22) — `/jobs` list with live state badges, `/jobs/new` dispatch form (online agents, image/command/args/env/timeout), `/jobs/$id` detail with spec/timing/exit code, cancel button, and live log viewer (REST backfill + WS `job.log` append, sequence-deduped, stderr styling, auto-scroll with pause-on-scroll-up) |
@@ -60,6 +65,7 @@ MVP push — see [docs/roadmap.md](roadmap.md). M3 (jobs UI, #21/#22/#26) implem
 
 ## Pending / Backlog
 
+- [ ] Token revoke doesn't drop an already-open gRPC stream — `Validate` is only checked at `Connect` time, so a revoked agent stays connected until it disconnects/reconnects on its own (accepted M4 trade-off; would need the hub to proactively close the stream via the registry)
 - [ ] Server-side per-job WS event filtering — hub fans out all org events to every client; clients filter on `job_id` (fine at MVP scale)
 - [ ] Org-scope `GET /jobs/{id}` and `GET /jobs/{id}/logs` — currently any authenticated user can read any job by ID (cancel is org-scoped; candidate for M4 hardening)
 - [ ] Cancel-on-reconcile-mismatch — a job failed by the sweeper during a long partition keeps running on the agent; its late terminal status is dropped by the guard and no CancelJob is sent (accepted M2 trade-off)
