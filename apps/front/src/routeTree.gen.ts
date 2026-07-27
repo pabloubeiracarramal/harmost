@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TokensRouteImport } from './routes/tokens'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DeviceRouteImport } from './routes/device'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -19,6 +20,11 @@ import { Route as JobsIdRouteImport } from './routes/jobs/$id'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AgentsIdRouteImport } from './routes/agents/$id'
 
+const TokensRoute = TokensRouteImport.update({
+  id: '/tokens',
+  path: '/tokens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/device': typeof DeviceRoute
   '/login': typeof LoginRoute
+  '/tokens': typeof TokensRoute
   '/agents/$id': typeof AgentsIdRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/jobs/$id': typeof JobsIdRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/device': typeof DeviceRoute
   '/login': typeof LoginRoute
+  '/tokens': typeof TokensRoute
   '/agents/$id': typeof AgentsIdRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/jobs/$id': typeof JobsIdRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/device': typeof DeviceRoute
   '/login': typeof LoginRoute
+  '/tokens': typeof TokensRoute
   '/agents/$id': typeof AgentsIdRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/jobs/$id': typeof JobsIdRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/device'
     | '/login'
+    | '/tokens'
     | '/agents/$id'
     | '/auth/callback'
     | '/jobs/$id'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/device'
     | '/login'
+    | '/tokens'
     | '/agents/$id'
     | '/auth/callback'
     | '/jobs/$id'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/device'
     | '/login'
+    | '/tokens'
     | '/agents/$id'
     | '/auth/callback'
     | '/jobs/$id'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DeviceRoute: typeof DeviceRoute
   LoginRoute: typeof LoginRoute
+  TokensRoute: typeof TokensRoute
   AgentsIdRoute: typeof AgentsIdRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   JobsIdRoute: typeof JobsIdRoute
@@ -149,6 +162,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tokens': {
+      id: '/tokens'
+      path: '/tokens'
+      fullPath: '/tokens'
+      preLoaderRoute: typeof TokensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DeviceRoute: DeviceRoute,
   LoginRoute: LoginRoute,
+  TokensRoute: TokensRoute,
   AgentsIdRoute: AgentsIdRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   JobsIdRoute: JobsIdRoute,
