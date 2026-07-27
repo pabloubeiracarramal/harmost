@@ -4,7 +4,15 @@
 
 ## Current Focus
 
-MVP push — see [docs/roadmap.md](roadmap.md). M3 (jobs UI, #21/#22/#26) implemented and verified E2E on 2026-07-19 on `feat/jobs-ui`: hub `GET /me` + `POST /jobs/{id}/cancel`, front jobs list/dispatch form/job detail with live log viewer, WS auto-reconnect, 401 → login redirect. E2E: 17/17 REST/WS checks (me, 401, dispatch 201, WS status transitions to terminal, WS log events, backfill, exit_code=0 persisted, cancel 202/409/404) and 8/8 browser UI checks (dispatch via form → live logs → succeeded badge → exit code row; cancel button → cancelled badge; list badges; header identity). E2E surfaced and fixed an exit-code presence bug (see below). M4 (#27/#28) implemented on `feat/m4-security-hardening` on 2026-07-27: gRPC TLS (opt-in via env, agent `--insecure` for local dev), org-scoped agent-token list/revoke (hub + front UI), per-IP rate limiting on unauthenticated endpoints. Builds/lints/tests green on hub, agent, front; not yet E2E-verified against a real TLS deployment. Next: M5 (deployment & packaging).
+MVP push — see [docs/roadmap.md](roadmap.md). M3 (jobs UI, #21/#22/#26) and M4 (security hardening, #27/#28) are both implemented and verified E2E together on 2026-07-27 on `feat/m4-security-hardening` (branched from `feat/jobs-ui`), since M4 changes the exact transport (agent `Connect`) and auth endpoints M3's demoed loop depends on. Combined pass against a real local hub/Postgres/agent, no mocks:
+
+- **M3 regression (plaintext, `agent pair --insecure`):** dispatch → REST 201 → live status accepted→running→succeeded, exit_code=0 persisted; long job dispatch → cancel → accepted→running→stopping→cancelled; logs correct. Confirmed via REST polling and again through the browser (dispatch form → job detail live status/log/exit-code → jobs list badges).
+- **M4 TLS:** hub fatals on partial `GRPC_TLS_CERT_FILE`/`GRPC_TLS_KEY_FILE` (both directions); with both set, serves real TLS 1.3 (`openssl s_client` confirmed); agent's default (no `--insecure`) correctly refuses a plaintext hub and an untrusted self-signed cert; full happy path verified by trusting a SAN-cert via `SSL_CERT_FILE` (process-scoped, no system trust store changes) — dispatch/exit-code/logs all work over the real TLS connection.
+- **M4 tokens:** `GET /api/v1/agent-tokens` lists with no `token_hash` leak; revoking from a *different* org's JWT 404s (verifies the `AgentTokenRepo.Revoke` org-scoping fix); same-org revoke 204s and the token drops from the list; double-revoke 404s; an already-open gRPC stream survives its token being revoked (per the documented trade-off) and keeps accepting dispatch; a fresh `Connect` with the revoked token is rejected (`Unauthenticated: invalid agent token`). `/tokens` UI verified in-browser: list, revoke button, confirm dialog, row disappears on revoke.
+- **M4 rate limiting:** hammering `POST /api/v1/device/authorize` allows exactly the burst (10) then returns `429` with `Retry-After: 10`.
+- Side finding (not a bug, confirms ADR 0007): booting a second hub instance against the same dev DB for the cert-validation checks flipped the M3 test agent to `offline` via its startup `MarkAllOffline` — live demonstration of the single-instance constraint.
+
+Next: M5 (deployment & packaging).
 
 ## Recent Changes
 
