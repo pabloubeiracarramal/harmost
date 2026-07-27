@@ -81,6 +81,21 @@ loads `.env` for terminal launches; VS Code needs `"envFile"` in the launch conf
 `codegraph explore "<topic>"` / `codegraph node <symbol|file>` — call paths,
 blast radius, and source for any symbol (index auto-syncs).
 
+### gRPC TLS — local dev vs production
+
+The hub serves gRPC in **plaintext by default** (matches local dev — no cert
+needed). Production must configure TLS:
+
+| Mode | Hub | Agent |
+|------|-----|-------|
+| Local dev (default) | No `GRPC_TLS_*` env set → plaintext | `agent pair <hub-url> --insecure` persists `insecure: true` in `config.json` |
+| Production | Set `GRPC_TLS_CERT_FILE` + `GRPC_TLS_KEY_FILE` (or terminate TLS in a proxy in front of `:50051` and leave these unset) | `agent pair <hub-url>` (no `--insecure`) — dials with the system cert pool |
+
+The hub refuses to start if only one of `GRPC_TLS_CERT_FILE`/`GRPC_TLS_KEY_FILE`
+is set, and logs a warning if it serves plaintext with `ENV=production`. The
+`--insecure` choice is baked into the agent's persisted config at pair time —
+re-pair to switch modes.
+
 ## Ports
 
 | Port | Service |

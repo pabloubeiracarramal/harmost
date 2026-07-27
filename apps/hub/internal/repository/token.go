@@ -41,11 +41,18 @@ func (r *AgentTokenRepo) ListByOrg(ctx context.Context, orgID string) ([]domain.
 	return tokens, err
 }
 
-func (r *AgentTokenRepo) Revoke(ctx context.Context, id string) error {
-	now := time.Now()
-	return r.db.WithContext(ctx).Model(&domain.AgentToken{}).
-		Where("id = ?", id).
-		Update("revoked_at", now).Error
+// Revoke is org-scoped so one org cannot revoke another org's token by ID.
+func (r *AgentTokenRepo) Revoke(ctx context.Context, orgID, id string) error {
+	result := r.db.WithContext(ctx).Model(&domain.AgentToken{}).
+		Where("id = ? AND org_id = ? AND revoked_at IS NULL", id, orgID).
+		Update("revoked_at", time.Now())
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 // ─── DeviceCodeRepo ───────────────────────────────────────────────────────────
