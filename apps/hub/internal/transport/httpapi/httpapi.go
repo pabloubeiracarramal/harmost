@@ -23,14 +23,23 @@ type Dispatcher interface {
 }
 
 type Server struct {
-	svc        *service.Services
-	dispatcher Dispatcher
-	bus        *events.Bus
-	cfg        platform.Config
+	svc         *service.Services
+	dispatcher  Dispatcher
+	bus         *events.Bus
+	cfg         platform.Config
+	publicLimit *ipRateLimiter
 }
 
 func New(svc *service.Services, d Dispatcher, bus *events.Bus, cfg platform.Config) *Server {
-	return &Server{svc: svc, dispatcher: d, bus: bus, cfg: cfg}
+	return &Server{
+		svc:        svc,
+		dispatcher: d,
+		bus:        bus,
+		cfg:        cfg,
+		// 0.5 tokens/sec refill, burst 10 — device-flow polling (>=5s interval)
+		// stays comfortably under this; login/authorize bursts absorb the spike.
+		publicLimit: newIPRateLimiter(0.5, 10),
+	}
 }
 
 // Routes returns the fully configured chi router.
@@ -39,11 +48,15 @@ func (s *Server) Routes() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Public — OAuth + device flow (no auth required).
-	r.Get("/auth/github", s.handleGitHubLogin)
-	r.Get("/auth/github/callback", s.handleGitHubCallback)
-	r.Post("/api/v1/device/authorize", s.handleDeviceAuthorize)
-	r.Post("/api/v1/device/token", s.handleDeviceToken)
+	// Public — OAuth + device flow (no auth required), rate-limited per IP.
+	r.Group(func(r chi.Router) {
+		r.Use(s.publicLimit.middleware)
+
+		r.Get("/auth/github", s.handleGitHubLogin)
+		r.Get("/auth/github/callback", s.handleGitHubCallback)
+		r.Post("/api/v1/device/authorize", s.handleDeviceAuthorize)
+		r.Post("/api/v1/device/token", s.handleDeviceToken)
+	})
 
 	// WebSocket — auth via ?token= query param.
 	r.Get("/ws", s.handleWebSocket)
@@ -58,6 +71,9 @@ func (s *Server) Routes() http.Handler {
 
 		r.Get("/api/v1/agents", s.listAgents)
 		r.Get("/api/v1/agents/{id}", s.getAgent)
+
+		r.Get("/api/v1/agent-tokens", s.listAgentTokens)
+		r.Post("/api/v1/agent-tokens/{id}/revoke", s.revokeAgentToken)
 
 		r.Post("/api/v1/jobs", s.dispatchJob)
 		r.Get("/api/v1/jobs", s.listJobs)

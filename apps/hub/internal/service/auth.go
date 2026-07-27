@@ -62,6 +62,16 @@ func (s *AgentTokenService) Validate(ctx context.Context, token string) (string,
 	return t.OrgID, agentID, nil
 }
 
+func (s *AgentTokenService) List(ctx context.Context, orgID string) ([]domain.AgentToken, error) {
+	return s.tokenRepo.ListByOrg(ctx, orgID)
+}
+
+// Revoke takes effect on the token's next validation; an already-open gRPC
+// stream authenticated with it stays up until it disconnects.
+func (s *AgentTokenService) Revoke(ctx context.Context, orgID, id string) error {
+	return s.tokenRepo.Revoke(ctx, orgID, id)
+}
+
 // ─── DeviceFlowService ────────────────────────────────────────────────────────
 
 type DeviceFlowService struct {

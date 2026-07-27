@@ -31,7 +31,7 @@ type AgentTokenRepository interface {
 	GetByHash(ctx context.Context, hash string) (*AgentToken, error)
 	TouchLastUsed(ctx context.Context, id string, at time.Time) error
 	ListByOrg(ctx context.Context, orgID string) ([]AgentToken, error)
-	Revoke(ctx context.Context, id string) error
+	Revoke(ctx context.Context, orgID, id string) error
 }
 
 type DeviceCodeRepository interface {
@@ -45,6 +45,8 @@ type DeviceCodeRepository interface {
 type AgentTokenService interface {
 	Generate(ctx context.Context, orgID, name, createdByID string) (plaintext string, err error)
 	Validate(ctx context.Context, token string) (orgID, agentID string, err error)
+	List(ctx context.Context, orgID string) ([]AgentToken, error)
+	Revoke(ctx context.Context, orgID, id string) error
 }
 
 type DeviceFlowService interface {

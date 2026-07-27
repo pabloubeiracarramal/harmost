@@ -16,6 +16,7 @@ import (
 	"github.com/harmost/hub/internal/transport/grpcapi"
 	"github.com/harmost/hub/internal/transport/httpapi"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 func main() {
@@ -56,7 +57,22 @@ func main() {
 	}()
 
 	// ── gRPC ────────────────────────────────────────────────────────────────
-	g := grpc.NewServer()
+	var grpcOpts []grpc.ServerOption
+	grpcTLS := false
+	switch {
+	case cfg.GRPCTLSCertFile != "" && cfg.GRPCTLSKeyFile != "":
+		creds, err := credentials.NewServerTLSFromFile(cfg.GRPCTLSCertFile, cfg.GRPCTLSKeyFile)
+		if err != nil {
+			log.Fatalf("grpc tls: %v", err)
+		}
+		grpcOpts = append(grpcOpts, grpc.Creds(creds))
+		grpcTLS = true
+	case cfg.GRPCTLSCertFile != "" || cfg.GRPCTLSKeyFile != "":
+		log.Fatal("grpc tls: GRPC_TLS_CERT_FILE and GRPC_TLS_KEY_FILE must both be set")
+	case cfg.Env == "production":
+		log.Print("grpc tls: WARNING serving plaintext in production — set GRPC_TLS_CERT_FILE/GRPC_TLS_KEY_FILE or terminate TLS in a proxy")
+	}
+	g := grpc.NewServer(grpcOpts...)
 	grpcSrv.Register(g)
 
 	lis, err := net.Listen("tcp", cfg.GRPCAddr)
@@ -75,7 +91,11 @@ func main() {
 
 	// ── start ────────────────────────────────────────────────────────────────
 	go func() {
-		log.Printf("gRPC listening on %s", cfg.GRPCAddr)
+		mode := "plaintext"
+		if grpcTLS {
+			mode = "tls"
+		}
+		log.Printf("gRPC listening on %s (%s)", cfg.GRPCAddr, mode)
 		if err := g.Serve(lis); err != nil {
 			log.Fatalf("grpc serve: %v", err)
 		}

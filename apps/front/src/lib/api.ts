@@ -39,6 +39,14 @@ export const api = {
     request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
 };
 
+export interface AgentToken {
+  id: string;
+  name: string;
+  agent_id?: string;
+  created_at: string;
+  last_used_at?: string;
+}
+
 export interface Agent {
   id: string;
   name: string;

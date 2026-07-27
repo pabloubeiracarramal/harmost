@@ -10,6 +10,7 @@ type Config struct {
 	HubAddr  string `json:"hub_addr"`
 	GRPCAddr string `json:"grpc_addr"`
 	Token    string `json:"token"`
+	Insecure bool   `json:"insecure,omitempty"`
 }
 
 func configPath() (string, error) {

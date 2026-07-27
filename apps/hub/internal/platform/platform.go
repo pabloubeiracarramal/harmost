@@ -14,6 +14,8 @@ type Config struct {
 	Env                string
 	HTTPAddr           string
 	GRPCAddr           string
+	GRPCTLSCertFile    string
+	GRPCTLSKeyFile     string
 	JWTSecret          string
 	GitHubClientID     string
 	GitHubClientSecret string
@@ -27,6 +29,8 @@ func LoadConfig() Config {
 		Env:                getEnv("ENV", "development"),
 		HTTPAddr:           getEnv("HTTP_ADDR", ":8080"),
 		GRPCAddr:           getEnv("GRPC_ADDR", ":50051"),
+		GRPCTLSCertFile:    getEnv("GRPC_TLS_CERT_FILE", ""),
+		GRPCTLSKeyFile:     getEnv("GRPC_TLS_KEY_FILE", ""),
 		JWTSecret:          requireEnv("JWT_SECRET"),
 		GitHubClientID:     requireEnv("GITHUB_CLIENT_ID"),
 		GitHubClientSecret: requireEnv("GITHUB_CLIENT_SECRET"),

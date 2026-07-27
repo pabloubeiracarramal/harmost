@@ -12,6 +12,7 @@ import (
 	"github.com/harmost/agent/internal/metrics"
 	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
 	googlegrpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -92,8 +93,16 @@ func isTerminalStatus(msg *harmostv1.AgentMessage) bool {
 	return false
 }
 
-func (c *Client) Connect(ctx context.Context, target, token string) error {
-	conn, err := googlegrpc.NewClient(target, googlegrpc.WithTransportCredentials(insecure.NewCredentials()))
+// Connect dials the hub and holds the bidi stream open. TLS via the system
+// cert pool is used unless insecureConn is set, which is for local dev only
+// (hub serves plaintext gRPC unless GRPC_TLS_CERT_FILE/GRPC_TLS_KEY_FILE are
+// configured — see docs/dev.md).
+func (c *Client) Connect(ctx context.Context, target, token string, insecureConn bool) error {
+	creds := credentials.NewClientTLSFromCert(nil, "")
+	if insecureConn {
+		creds = insecure.NewCredentials()
+	}
+	conn, err := googlegrpc.NewClient(target, googlegrpc.WithTransportCredentials(creds))
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
