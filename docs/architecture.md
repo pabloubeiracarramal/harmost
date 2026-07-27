@@ -80,6 +80,8 @@ The user (or webhook payload) explicitly names the target agent. Hub looks up th
 
 Many agents connect to one hub instance. Each agent represents a distinct machine or environment (e.g., `prod-server-01`, `build-arm64`).
 
+The hub is single-instance by design (see [ADR 0007](adr/0007-hub-single-instance.md)): the WS event bus and the gRPC agent stream registry are both in-process memory, not shared across replicas. Running more than one concurrent hub process will silently break dispatch/cancel and WebSocket delivery for agents/events held on a different replica.
+
 ## Persistence (hub)
 
 PostgreSQL (GORM; schema managed by goose migrations). Stores:
@@ -102,3 +104,4 @@ Future candidate: shared TypeScript types if an API schema layer is added. Run `
 - [ADR 0004 — Multi-tenancy model](adr/0004-multi-tenancy-model.md)
 - [ADR 0005 — Hub internal structure and tooling](adr/0005-hub-structure-and-tooling.md)
 - [ADR 0006 — Authentication strategy](adr/0006-authentication-strategy.md)
+- [ADR 0007 — Hub runs as a single instance (no horizontal scaling)](adr/0007-hub-single-instance.md)
