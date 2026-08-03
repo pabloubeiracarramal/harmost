@@ -1,17 +1,12 @@
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { api, type User } from '@/lib/api';
-import { clearToken } from '@/lib/auth';
+import { useMe } from '@/features/auth';
+import { clearToken } from '@/shared/api/auth';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
-  const { data: me } = useQuery<User>({
-    queryKey: ['me'],
-    queryFn: () => api.get<User>('/api/v1/me'),
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: me } = useMe();
 
   const handleLogout = () => {
     clearToken();

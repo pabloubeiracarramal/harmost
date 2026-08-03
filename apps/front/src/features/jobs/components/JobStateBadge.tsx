@@ -1,4 +1,4 @@
-import type { JobState } from '@/lib/api';
+import type { JobState } from '../api/types';
 
 const STYLES: Record<JobState, string> = {
   accepted: 'bg-neutral-700/60 text-neutral-300',
