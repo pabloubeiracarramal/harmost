@@ -31,5 +31,5 @@ type JobLogRepository interface {
 
 type JobLogService interface {
 	IngestChunks(ctx context.Context, chunks []JobLog) error
-	ListByJob(ctx context.Context, jobID string) ([]JobLog, error)
+	ListByJob(ctx context.Context, orgID, jobID string) ([]JobLog, error)
 }

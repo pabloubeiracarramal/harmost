@@ -133,8 +133,9 @@ func (s *Server) listJobs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getJob(w http.ResponseWriter, r *http.Request) {
+	orgID := orgIDFromCtx(r.Context())
 	id := chi.URLParam(r, "id")
-	job, err := s.svc.Job.GetByID(r.Context(), id)
+	job, err := s.svc.Job.GetByID(r.Context(), orgID, id)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			jsonError(w, http.StatusNotFound, "job not found")
@@ -150,9 +151,9 @@ func (s *Server) cancelJob(w http.ResponseWriter, r *http.Request) {
 	orgID := orgIDFromCtx(r.Context())
 	id := chi.URLParam(r, "id")
 
-	job, err := s.svc.Job.GetByID(r.Context(), id)
-	if err != nil || job.OrgID != orgID {
-		if errors.Is(err, domain.ErrNotFound) || err == nil {
+	job, err := s.svc.Job.GetByID(r.Context(), orgID, id)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
 			jsonError(w, http.StatusNotFound, "job not found")
 			return
 		}
@@ -175,9 +176,14 @@ func (s *Server) cancelJob(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getJobLogs(w http.ResponseWriter, r *http.Request) {
+	orgID := orgIDFromCtx(r.Context())
 	id := chi.URLParam(r, "id")
-	logs, err := s.svc.JobLog.ListByJob(r.Context(), id)
+	logs, err := s.svc.JobLog.ListByJob(r.Context(), orgID, id)
 	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			jsonError(w, http.StatusNotFound, "job not found")
+			return
+		}
 		jsonError(w, http.StatusInternalServerError, "failed to get logs")
 		return
 	}

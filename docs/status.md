@@ -18,6 +18,7 @@ Next: M5 (deployment & packaging).
 
 | Date | App | Summary |
 |------|-----|---------|
+| 2026-08-07 | hub | **Cross-tenant leak fixed** — `GET /api/v1/jobs/{id}` and `GET /api/v1/jobs/{id}/logs` looked jobs up by ID with no org filter, so any authenticated user could read another org's job and its logs. Org scoping moved into the service layer (`JobService.GetByID` and `JobLogService.ListByJob` now take `orgID` and return `ErrNotFound` for a foreign job, so existence can't be probed); `cancelJob`'s handler-level `job.OrgID != orgID` check folded into the same path. Agent-driven paths (status updates, reconciliation, orphan sweeper) still go through `jobRepo` directly — they authenticate by agent token, not org claim. Logs endpoint gains a 404 branch it never had |
 | 2026-07-27 | hub | gRPC TLS (M4, #27) — `GRPC_TLS_CERT_FILE`/`GRPC_TLS_KEY_FILE` env; serves TLS when both set, refuses to start if only one is, warns on plaintext when `ENV=production` |
 | 2026-07-27 | agent | gRPC TLS client (M4, #27) — `Connect` dials with the system cert pool by default; `agent pair --insecure` persists `insecure: true` in config for local dev (plaintext) |
 | 2026-07-27 | hub | Agent-token management (M4, #28) — `GET /api/v1/agent-tokens` + `POST /api/v1/agent-tokens/{id}/revoke`, org-scoped (fixed `AgentTokenRepo.Revoke` to filter by `org_id`, previously any org could revoke any token by ID); revocation takes effect on next validation, does not drop an already-open gRPC stream |

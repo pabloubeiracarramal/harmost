@@ -130,7 +130,20 @@ func (s *JobService) ListByOrg(ctx context.Context, orgID string) ([]domain.Job,
 	return s.jobRepo.ListByOrg(ctx, orgID)
 }
 
-// GetByID returns a single job by ID.
-func (s *JobService) GetByID(ctx context.Context, id string) (*domain.Job, error) {
-	return s.jobRepo.GetByID(ctx, id)
+// GetByID returns a single job by ID, scoped to the caller's org. A job owned
+// by another org is reported as not found rather than forbidden — callers must
+// not be able to probe for job IDs outside their tenant.
+//
+// Agent-driven paths (status updates, reconciliation, the orphan sweeper) go
+// through s.jobRepo directly; they are authenticated by agent token, not by a
+// user's org claim.
+func (s *JobService) GetByID(ctx context.Context, orgID, id string) (*domain.Job, error) {
+	job, err := s.jobRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if job.OrgID != orgID {
+		return nil, domain.ErrNotFound
+	}
+	return job, nil
 }
