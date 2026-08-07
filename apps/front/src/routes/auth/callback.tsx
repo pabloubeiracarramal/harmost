@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect } from 'react';
-import { setToken } from '@/lib/auth';
+import { setToken } from '@/shared/api/auth';
 
 export const Route = createFileRoute('/auth/callback')({
   component: AuthCallback,

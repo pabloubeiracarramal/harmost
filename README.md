@@ -19,7 +19,7 @@ front (React)  ──REST + WebSocket──▶  hub (Go, cloud)  ◀──gRPC b
 
 ```sh
 npm install
-nx run workspace:dev     # Postgres (+Adminer) → hub (live reload) → front (Vite on :4200)
+nx run workspace:dev     # Postgres → hub (live reload) → front (Vite on :4200)
 ```
 
 Full setup (Docker, hub `.env`, running an agent, API/gRPC/WS tooling): see [docs/dev.md](docs/dev.md).

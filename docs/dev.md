@@ -9,20 +9,20 @@ How to run the stack and poke at every surface of it while you build.
    Verify with `docker ps`.
 2. **Hub env** — `apps/hub/.env` (copy from `.env.example` if missing). Needs a
    GitHub OAuth app (callback `http://localhost:8080/auth/github/callback`).
-3. **psql (optional)** — `sudo apt-get install -y postgresql-client`. Adminer
-   (browser) works without it.
+3. **psql** — `sudo apt-get install -y postgresql-client` (needed to browse the
+   dev DB; there's no bundled browser client).
 
 ## Daily workflow
 
 ```sh
-nx run workspace:dev        # Postgres (+Adminer) → hub (air) → front (vite)
+nx run workspace:dev        # Postgres → hub (air) → front (vite)
 ```
 
 Or piece by piece:
 
 | Command | What it does |
 |---------|--------------|
-| `nx run workspace:db` | Start Postgres + Adminer in Docker |
+| `nx run workspace:db` | Start Postgres in Docker |
 | `nx run hub:migrate` | Apply goose migrations (needs `DATABASE_URL` in env) |
 | `nx run hub:dev` | Hub with air live-reload (HTTP :8080, gRPC :50051) |
 | `nx run front:dev` | Vite dev server on :4200 (proxies /auth, /api, /ws to hub) |
@@ -47,7 +47,6 @@ Headless alternative: `go run ./cmd/devtoken <user-id> <org-id>` from `apps/hub/
 (direnv loads `JWT_SECRET`); look up the IDs in the `users`/`orgs` tables.
 
 ### Database
-- **Browser:** Adminer at http://localhost:8081 (server `db`, user/pass `postgres`).
 - **Terminal:** `psql "$DATABASE_URL"` from `apps/hub/` (direnv loads `.env`).
 
 ### gRPC (the hub↔agent stream)
@@ -104,4 +103,3 @@ re-pair to switch modes.
 | 8080 | hub HTTP + WebSocket |
 | 50051 | hub gRPC |
 | 5432 | Postgres |
-| 8081 | Adminer |

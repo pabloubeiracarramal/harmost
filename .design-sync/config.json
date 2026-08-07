@@ -1,0 +1,62 @@
+{
+  "projectId": "a80f90ec-0df2-47b8-ac6e-118143b219d3",
+  "shape": "package",
+  "pkg": "front",
+  "globalName": "HarmostUI",
+  "srcDir": "src",
+  "tsconfig": "tsconfig.app.json",
+  "cssEntry": ".ds-styles.css",
+  "buildCmd": "npx nx run front:build && cp dist/apps/front/assets/index-*.css apps/front/.ds-styles.css && (cd apps/front && ../../node_modules/.bin/tsc -p tsconfig.ds-types.json)",
+  "extraEntries": ["./.ds-preview-shell.tsx"],
+  "provider": { "component": "HarmostPreviewShell" },
+  "docsDir": "../../.design-sync/docs",
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "AgentCard": { "cardMode": "column" },
+    "Card": { "cardMode": "column" },
+    "ChartContainer": { "cardMode": "column" },
+    "DetailRow": { "cardMode": "column" },
+    "EmptyState": { "cardMode": "column" },
+    "Field": { "cardMode": "column" },
+    "Input": { "cardMode": "column" },
+    "JobStateBadge": { "cardMode": "column" },
+    "LogViewer": { "cardMode": "column" },
+    "MetricAreaChart": { "cardMode": "column" },
+    "MetricsCard": { "cardMode": "column" },
+    "RadialGauge": { "cardMode": "column" },
+    "StatRow": { "cardMode": "column" },
+    "Tooltip": { "cardMode": "single", "primaryStory": "Open" }
+  },
+  "dtsPropsFor": {
+    "AgentCard": "/** The agent to render. The tile links to /agents/$id itself. */\nagent: {\n  id: string;\n  name: string;\n  description: string;\n  version: string;\n  hostname: string;\n  status: 'online' | 'offline';\n  last_seen_at?: string;\n  created_at: string;\n  cpu_usage_percent?: number;\n  memory_used_bytes?: number;\n  memory_total_bytes?: number;\n  disk_used_bytes?: number;\n  disk_total_bytes?: number;\n  running_containers?: number;\n};",
+    "EmptyState": "/** EmptyState takes no props — the copy is fixed to the agents-list empty state. */",
+    "RadialGauge": "/** Usage percentage, clamped to 0-100. Colour slides green (low) to red (high). */\npercent: number;\n/** Caption under the ring. */\nlabel: string;\n/** Optional secondary caption. */\nsublabel?: string;",
+    "StatRow": "/** Left-hand caption. */\nlabel: string;\n/** Right-hand value, rendered monospace. */\nvalue: string;",
+    "DetailRow": "/** Left-hand caption. */\nlabel: string;\n/** Right-hand value, rendered monospace and truncated. */\nvalue: string;\n/** When set, the value becomes an anchor with this href. */\nlink?: string;",
+    "Field": "/** Label text rendered above the control. */\nlabel: string;\n/** Dim helper text rendered below the control. */\nhint?: string;\n/** Appends a red asterisk to the label. */\nrequired?: boolean;\n/** The form control this label wraps. */\nchildren: React.ReactNode;",
+    "Input": "/** Current value (controlled). */\nvalue: string;\n/** Receives the new string value, not the change event. */\nonChange: (v: string) => void;\nplaceholder?: string;\nrequired?: boolean;\n/** Render in a monospace face — for image refs, commands and env values. */\nmono?: boolean;\n/** Passed through to the underlying input. Defaults to 'text'. */\ntype?: string;",
+    "JobStateBadge": "/** Raw job state from the hub — underscores are formatted to spaces internally. */\nstate: 'accepted' | 'pulling_image' | 'creating_container' | 'starting_container' | 'running' | 'stopping' | 'cancelled' | 'succeeded' | 'failed' | 'timed_out';",
+    "LogViewer": "/** Log lines in sequence order. */\nlines: Array<{\n  line: string;\n  stream: 'stdout' | 'stderr';\n  sequence: number;\n  timestamp: string;\n}>;\n/** Shows the pulsing \"live\" indicator in the header. */\nlive: boolean;",
+    "Card": "/** Card and its parts (CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter) are plain divs. */\nclassName?: string;\nchildren?: React.ReactNode;\n/** Plus all standard <div> attributes. */\n[key: string]: unknown;",
+    "ChartContainer": "/** Maps each dataKey to its label and colour. `theme` sets per-mode colours. */\nconfig: Record<string, {\n  label?: React.ReactNode;\n  icon?: React.ComponentType;\n  color?: string;\n  theme?: Record<'light' | 'dark', string>;\n}>;\n/** A single recharts element, e.g. <AreaChart> or <RadialBarChart>. */\nchildren: React.ReactElement;\n/** Size the chart here (e.g. \"h-24 w-full\"), never via recharts width/height. */\nclassName?: string;\nid?: string;\ninitialDimension?: { width: number; height: number };",
+    "Tooltip": "/** Tooltip must render inside a TooltipProvider. Compose with TooltipTrigger and TooltipContent. */\nopen?: boolean;\ndefaultOpen?: boolean;\nonOpenChange?: (open: boolean) => void;\n/** Delay before opening, in ms. TooltipProvider defaults it to 0. */\ndelayDuration?: number;\nchildren?: React.ReactNode;"
+  },
+  "componentSrcMap": {
+    "Card": "src/shared/components/ui/card.tsx",
+    "ChartContainer": "src/shared/components/ui/chart.tsx",
+    "Tooltip": "src/shared/components/ui/tooltip.tsx",
+
+    "AgentCard": "src/features/agents/components/AgentCard.tsx",
+    "EmptyState": "src/features/agents/components/EmptyState.tsx",
+    "RadialGauge": "src/features/agents/components/RadialGauge.tsx",
+    "StatRow": "src/features/agents/components/StatRow.tsx",
+    "MetricAreaChart": "src/features/agents/components/metrics-card/MetricAreaChart.tsx",
+    "MetricsCard": "src/features/agents/components/metrics-card/MetricsCard.tsx",
+
+    "DetailRow": "src/features/jobs/components/DetailRow.tsx",
+    "Field": "src/features/jobs/components/Field.tsx",
+    "Input": "src/features/jobs/components/Input.tsx",
+    "JobStateBadge": "src/features/jobs/components/JobStateBadge.tsx",
+    "LogViewer": "src/features/jobs/components/LogViewer.tsx"
+  }
+}

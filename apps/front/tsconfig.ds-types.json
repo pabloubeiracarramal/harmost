@@ -1,0 +1,21 @@
+{
+  "//": "Emits .d.ts declarations for design-sync only (see .design-sync/NOTES.md). Not part of the app build — `nx run front:build` never reads this file. The converter's findTypesRoot() auto-discovers the `types/` outDir, which is what gives each component a real props contract instead of `[key: string]: unknown`.",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false,
+    "outDir": "types",
+    "rootDir": ".",
+    "skipLibCheck": true
+  },
+  "//include": "routes/ and routeTree.gen.ts are deliberately excluded: they emit TS4023 (RouterContext cannot be named) and the barrel never imports them.",
+  "include": [
+    "src/shared/**/*.ts",
+    "src/shared/**/*.tsx",
+    "src/features/**/*.ts",
+    "src/features/**/*.tsx",
+    ".ds-entry.tsx"
+  ]
+}
