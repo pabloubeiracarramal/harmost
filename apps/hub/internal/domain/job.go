@@ -113,7 +113,7 @@ type JobService interface {
 	Dispatch(ctx context.Context, orgID, agentID string, spec JobSpec) (*Job, error)
 	HandleStatusUpdate(ctx context.Context, in JobStatusInput) error
 	ListByOrg(ctx context.Context, orgID string) ([]Job, error)
-	GetByID(ctx context.Context, id string) (*Job, error)
+	GetByID(ctx context.Context, orgID, id string) (*Job, error)
 	ReconcileAgent(ctx context.Context, agentID string, runningJobIDs []string, helloAt time.Time) error
 	SweepOrphans(ctx context.Context, grace time.Duration) error
 }

@@ -23,7 +23,7 @@ func New(db *gorm.DB, frontendURL string, bus *events.Bus) *Services {
 		User:   &UserService{db: db, userRepo: repos.User, orgRepo: repos.Org},
 		Agent:  &AgentService{db: db, agentRepo: repos.Agent},
 		Job:    &JobService{jobRepo: repos.Job, bus: bus},
-		JobLog: &JobLogService{jobLogRepo: repos.JobLog},
+		JobLog: &JobLogService{jobLogRepo: repos.JobLog, jobRepo: repos.Job},
 		AgentToken: agentTokenSvc,
 		DeviceFlow: &DeviceFlowService{
 			db:          db,

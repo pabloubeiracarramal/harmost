@@ -174,3 +174,24 @@ func TestSweepOrphans_FailsAndPublishes(t *testing.T) {
 	require.Len(t, pub.events, 1)
 	assert.Equal(t, "job-c", pub.events[0].JobID)
 }
+
+func TestGetByID_ReturnsJobForOwningOrg(t *testing.T) {
+	repo := &fakeJobRepo{job: testJob("job-1", domain.JobStateRunning)} // OrgID "org-1"
+	svc := &JobService{jobRepo: repo}
+
+	job, err := svc.GetByID(context.Background(), "org-1", "job-1")
+
+	require.NoError(t, err)
+	assert.Equal(t, "job-1", job.ID)
+}
+
+func TestGetByID_ForeignOrgIsNotFound(t *testing.T) {
+	repo := &fakeJobRepo{job: testJob("job-1", domain.JobStateRunning)} // OrgID "org-1"
+	svc := &JobService{jobRepo: repo}
+
+	job, err := svc.GetByID(context.Background(), "org-2", "job-1")
+
+	// Not-found, not forbidden — a foreign org must not learn the ID exists.
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+	assert.Nil(t, job)
+}
