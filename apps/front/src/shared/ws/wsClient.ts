@@ -1,43 +1,15 @@
 import { getToken } from '@/shared/api/auth';
+import type { components } from '@/shared/api/schema';
 
-export interface AgentEvent {
-  type: 'agent.connected' | 'agent.disconnected' | 'agent.heartbeat';
-  agent_id: string;
-  at: string;
-}
-
-// state is intentionally loose (not the feature-owned JobState union) — the
-// WS wire layer must not depend on a feature's domain types.
-export interface JobStatusEvent {
-  type: 'job.status';
-  agent_id: string;
-  job_id: string;
-  at: string;
-  payload: {
-    state: string;
-    message?: string;
-    exit_code?: number;
-  };
-}
-
-export interface LogLine {
-  line: string;
-  stream: 'stdout' | 'stderr';
-  sequence: number;
-  timestamp: string;
-}
-
-export interface JobLogEvent {
-  type: 'job.log';
-  agent_id: string;
-  job_id: string;
-  at: string;
-  payload: {
-    lines: LogLine[];
-  };
-}
-
-export type HubEvent = AgentEvent | JobStatusEvent | JobLogEvent;
+// The event shapes come from libs/harmost-api/openapi.yaml, the same document
+// the hub generates its payload structs from. Because they arrive via a
+// generated file rather than a feature, shared/ can name the JobState union
+// without importing from features/ — so payload.state is properly typed here.
+export type AgentEvent = components['schemas']['AgentEvent'];
+export type JobStatusEvent = components['schemas']['JobStatusEvent'];
+export type JobLogEvent = components['schemas']['JobLogEvent'];
+export type LogLine = components['schemas']['LogLine'];
+export type HubEvent = components['schemas']['HubEvent'];
 
 const MAX_BACKOFF_MS = 30_000;
 

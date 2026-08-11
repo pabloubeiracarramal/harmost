@@ -35,6 +35,8 @@ Two distinct communication boundaries need a protocol decision:
 - **front ↔ hub**: WebSocket
 - **hub ↔ agent**: gRPC bidirectional streaming
 
+> **Amended by [ADR 0010](0010-openapi-contract-for-front-hub.md) (2026-08-08).** As built, front ↔ hub is REST for commands and snapshots **plus** WebSocket for live events — commands go to `/api/v1/*`, not over the socket. ADR 0010 ratifies that split and makes `libs/harmost-api/openapi.yaml` its contract.
+
 **Justification:** WebSocket gives the frontend a single persistent channel that can receive pushed log chunks and send commands (job trigger, cancel) without separate REST endpoints. gRPC bidirectional streaming lets agents connect outbound through firewalls, gives strongly-typed proto contracts, and supports efficient binary framing for log chunk payloads. The two protocols are consistent in spirit: both are long-lived, bidirectional, and initiated by the downstream party.
 
 ## 4. Consequences
@@ -55,6 +57,6 @@ Two distinct communication boundaries need a protocol decision:
 ## 5. AI Directives (System Rules)
 
 * **MUST:** All hub ↔ agent interactions MUST be defined in a `.proto` file and communicated over the existing gRPC bidirectional stream. Never add a REST or WebSocket endpoint between hub and agent.
-* **MUST:** All front ↔ hub real-time interactions MUST use the WebSocket channel. Do not add a polling endpoint as a fallback.
+* **MUST:** All front ↔ hub real-time interactions MUST use the WebSocket channel. Do not add a polling endpoint as a fallback. (Per ADR 0010, the WS event payloads are *defined* as schemas in `libs/harmost-api/openapi.yaml` — that is a shared type definition, not a REST fallback, and does not relax this rule.)
 * **MUST NOT:** Never have hub initiate an outbound TCP connection to an agent. The agent always connects to hub.
 * **REFERENCE:** See `docs/architecture.md` for the full data flow diagram.

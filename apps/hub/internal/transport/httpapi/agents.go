@@ -3,41 +3,23 @@ package httpapi
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+	api "github.com/harmost/api/gen"
 	"github.com/harmost/hub/internal/domain"
 )
 
-type agentResponse struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Version     string     `json:"version"`
-	Hostname    string     `json:"hostname"`
-	Status      string     `json:"status"`
-	LastSeenAt  *time.Time `json:"last_seen_at,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-
-	CpuUsagePercent   *float32 `json:"cpu_usage_percent,omitempty"`
-	MemoryUsedBytes   *int64   `json:"memory_used_bytes,omitempty"`
-	MemoryTotalBytes  *int64   `json:"memory_total_bytes,omitempty"`
-	DiskUsedBytes     *int64   `json:"disk_used_bytes,omitempty"`
-	DiskTotalBytes    *int64   `json:"disk_total_bytes,omitempty"`
-	RunningContainers *int32   `json:"running_containers,omitempty"`
-}
-
-func toAgentResponse(a domain.Agent) agentResponse {
-	return agentResponse{
+func toAgentResponse(a domain.Agent) api.Agent {
+	return api.Agent{
 		ID:                a.ID,
 		Name:              a.Name,
 		Description:       a.Description,
 		Version:           a.Version,
 		Hostname:          a.Hostname,
-		Status:            string(a.Status),
+		Status:            api.AgentStatus(a.Status),
 		LastSeenAt:        a.LastSeenAt,
 		CreatedAt:         a.CreatedAt,
-		CpuUsagePercent:   a.CpuUsagePercent,
+		CPUUsagePercent:   a.CpuUsagePercent,
 		MemoryUsedBytes:   a.MemoryUsedBytes,
 		MemoryTotalBytes:  a.MemoryTotalBytes,
 		DiskUsedBytes:     a.DiskUsedBytes,
@@ -53,7 +35,7 @@ func (s *Server) listAgents(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to list agents")
 		return
 	}
-	out := make([]agentResponse, len(agents))
+	out := make([]api.Agent, len(agents))
 	for i, a := range agents {
 		out[i] = toAgentResponse(a)
 	}

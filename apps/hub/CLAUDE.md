@@ -40,12 +40,15 @@ migrations/              # goose SQL migration files
 | chi | HTTP router |
 | GORM | ORM (`gorm.io/gorm` + `gorm.io/driver/postgres`) |
 | goose | DB migrations |
-| buf | Proto generation |
+| buf | Proto generation (hub ↔ agent contract) |
+| oapi-codegen | Go model generation from `libs/harmost-api/openapi.yaml` (hub ↔ front contract) |
 | air | Live reload in dev |
 | testify | Test assertions |
 
 ## Conventions
 - Transport handlers call services. Services call repositories. Never skip layers.
+- REST request/response types are **generated** into `github.com/harmost/api/gen` (imported as `api`) from `libs/harmost-api/openapi.yaml` — see ADR 0010. Never hand-write a DTO in `httpapi/`; add the field to the spec and run `nx run harmost-api:generate`. `httpapi/convert.go` maps between `api.JobSpec` and `domain.JobSpec`, which stay separate so `domain` never imports the transport contract.
+- WS event payloads are generated too, re-exported through `internal/events` (`events.JobStatusPayload`, `events.LogLine`, ...) so publishers depend on the bus's vocabulary rather than importing `api` directly. The `events.Event` envelope itself is hand-written — it carries `OrgID` as a routing key that never goes on the wire.
 - Bulk inserts (especially job log chunks) **must** use `db.CreateInBatches(records, 500)`. Never `Create` inside a loop.
 - Schema changes go through a goose migration file. **Never** call `AutoMigrate` outside a local dev helper.
 - All resources carry `OrgID` — see ADR 0004.

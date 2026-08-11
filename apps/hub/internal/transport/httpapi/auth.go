@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	api "github.com/harmost/api/gen"
 	"github.com/harmost/hub/internal/auth"
 	"github.com/harmost/hub/internal/domain"
 	"golang.org/x/oauth2"
@@ -133,22 +134,13 @@ func fetchGitHubProfile(ctx context.Context, accessToken string) (*domain.GitHub
 
 // ─── Device flow ──────────────────────────────────────────────────────────────
 
-type deviceAuthorizeResponse struct {
-	DeviceCode      string `json:"device_code"`
-	UserCode        string `json:"user_code"`
-	VerificationURI string `json:"verification_uri"`
-	ExpiresIn       int    `json:"expires_in"`
-	Interval        int    `json:"interval"`
-	GRPCAddr        string `json:"grpc_addr"`
-}
-
 func (s *Server) handleDeviceAuthorize(w http.ResponseWriter, r *http.Request) {
 	d, err := s.svc.DeviceFlow.Initiate(r.Context())
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to initiate device flow")
 		return
 	}
-	jsonOK(w, deviceAuthorizeResponse{
+	jsonOK(w, api.DeviceAuthorizeResponse{
 		DeviceCode:      d.DeviceCode,
 		UserCode:        d.UserCode,
 		VerificationURI: fmt.Sprintf("%s/device?code=%s", s.cfg.FrontendURL, url.QueryEscape(d.UserCode)),
@@ -158,12 +150,8 @@ func (s *Server) handleDeviceAuthorize(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type deviceTokenRequest struct {
-	DeviceCode string `json:"device_code"`
-}
-
 func (s *Server) handleDeviceToken(w http.ResponseWriter, r *http.Request) {
-	var req deviceTokenRequest
+	var req api.DeviceTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.DeviceCode == "" {
 		jsonError(w, http.StatusBadRequest, "missing device_code")
 		return
@@ -176,20 +164,19 @@ func (s *Server) handleDeviceToken(w http.ResponseWriter, r *http.Request) {
 	}
 	if pending {
 		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(map[string]string{"error": "authorization_pending"})
+		json.NewEncoder(w).Encode(api.Error{Error: "authorization_pending"})
 		return
 	}
-	jsonOK(w, map[string]string{"access_token": token, "token_type": "Bearer"})
-}
-
-type deviceApproveRequest struct {
-	UserCode string `json:"user_code"`
+	jsonOK(w, api.DeviceTokenResponse{
+		AccessToken: token,
+		TokenType:   api.TokenTypeBearer,
+	})
 }
 
 func (s *Server) handleDeviceApprove(w http.ResponseWriter, r *http.Request) {
 	claims := claimsFromCtx(r.Context())
 
-	var req deviceApproveRequest
+	var req api.DeviceApproveRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.UserCode == "" {
 		jsonError(w, http.StatusBadRequest, "missing user_code")
 		return

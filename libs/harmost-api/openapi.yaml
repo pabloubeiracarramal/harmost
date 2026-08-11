@@ -1,0 +1,875 @@
+openapi: 3.1.0
+
+info:
+  title: Harmost Hub API
+  version: 1.0.0
+  description: |
+    The contract between the Harmost **front** (React) and **hub** (Go).
+
+    Two transports share this document:
+
+    - **REST** (`/api/v1/*`, JWT bearer) for commands and snapshots.
+    - **WebSocket** (`/ws?token=<jwt>`) for live events. OpenAPI cannot describe a
+      WS channel, so the event payloads live in `components/schemas` (`HubEvent`
+      and friends) with no `paths` entry. Both sides generate their event types
+      from those schemas; the socket plumbing itself stays hand-written.
+
+    The hub ↔ agent contract is **not** here — it is gRPC, defined in
+    `libs/harmost-proto`. See ADR 0002 and ADR 0010.
+
+servers:
+  - url: /
+    description: Same-origin. The front calls fetch() with no base URL; the Vite
+      dev server proxies /api, /auth and /ws to the hub on :8080.
+
+tags:
+  - name: auth
+    description: GitHub OAuth sign-in and session identity.
+  - name: device
+    description: Device flow for pairing an agent.
+  - name: agents
+    description: Registered agents and their live metrics.
+  - name: jobs
+    description: Job dispatch, lifecycle and logs.
+  - name: tokens
+    description: Agent tokens.
+  - name: events
+    description: WebSocket event stream.
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ─── auth ──────────────────────────────────────────────────────────────────
+
+  /auth/github:
+    get:
+      tags: [auth]
+      summary: Begin GitHub OAuth sign-in
+      description: |
+        Documented for completeness — this is a browser redirect, not a JSON API,
+        and stays hand-wired on chi. Sets an `oauth_state` cookie (HttpOnly,
+        SameSite=Lax, 10 min) and redirects to GitHub with scopes
+        `read:user`, `user:email`.
+      operationId: githubLogin
+      security: []
+      responses:
+        '307':
+          description: Temporary redirect to GitHub's authorize URL.
+          headers:
+            Location:
+              schema: { type: string }
+            Set-Cookie:
+              description: '`oauth_state=<hex>; Path=/; Max-Age=600; HttpOnly; SameSite=Lax`'
+              schema: { type: string }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /auth/github/callback:
+    get:
+      tags: [auth]
+      summary: GitHub OAuth callback
+      description: |
+        Documented for completeness — browser redirect, hand-wired on chi.
+        Validates `state` against the `oauth_state` cookie, exchanges `code`,
+        then redirects to `{FRONTEND_URL}/auth/callback?token=<jwt>`.
+      operationId: githubCallback
+      security: []
+      parameters:
+        - name: state
+          in: query
+          required: true
+          schema: { type: string }
+        - name: code
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '307':
+          description: Temporary redirect to the front-end callback route carrying the JWT.
+          headers:
+            Location:
+              schema: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/me:
+    get:
+      tags: [auth]
+      summary: Current user
+      operationId: getMe
+      responses:
+        '200':
+          description: The authenticated user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401':
+          description: |
+            Missing/invalid token, **or** the user record no longer exists —
+            the hub deliberately answers 401 rather than 404 for the latter.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ─── device flow ───────────────────────────────────────────────────────────
+
+  /api/v1/device/authorize:
+    post:
+      tags: [device]
+      summary: Start a device-flow pairing
+      description: Called by the agent CLI. Takes no request body.
+      operationId: deviceAuthorize
+      security: []
+      responses:
+        '200':
+          description: Device and user codes, plus where to poll and approve.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceAuthorizeResponse' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/device/token:
+    post:
+      tags: [device]
+      summary: Poll for the agent token
+      description: |
+        Polled by the agent CLI at the `interval` returned by
+        `deviceAuthorize` (5s). Returns 202 while the user has not yet approved.
+      operationId: deviceToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceTokenRequest' }
+      responses:
+        '200':
+          description: |
+            Approved. `access_token` is an **opaque agent token** (base64url,
+            32 random bytes) used as gRPC metadata — not a JWT.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceTokenResponse' }
+        '202':
+          description: |
+            Still pending approval; keep polling. Body is
+            `{"error": "authorization_pending"}`.
+
+            Note: the hub writes this branch without setting `Content-Type`, so
+            the response is sniffed as `text/plain` on the wire. Documented as
+            JSON because that is what the body actually contains.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '400':
+          description: Missing or undecodable `device_code`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '410':
+          description: Device code expired or unknown (the hub does not distinguish).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/v1/device/approve:
+    post:
+      tags: [device]
+      summary: Approve a pending device code
+      description: |
+        Called by the front's `/device?code=XXXX-XXXX` page. Creates a `pending`
+        agent plus its agent token.
+      operationId: deviceApprove
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceApproveRequest' }
+      responses:
+        '204':
+          description: Approved.
+        '400':
+          description: |
+            Missing `user_code`, or the service rejected it — the error text is
+            the service's own (`device code expired`, `already approved`,
+            `record not found`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ─── agents ────────────────────────────────────────────────────────────────
+
+  /api/v1/agents:
+    get:
+      tags: [agents]
+      summary: List agents
+      description: Org-scoped, ordered `created_at DESC`. No pagination or filters.
+      operationId: listAgents
+      responses:
+        '200':
+          description: All agents in the caller's org. Empty list serializes as `[]`.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Agent' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/agents/{id}:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+    get:
+      tags: [agents]
+      summary: Get an agent
+      operationId: getAgent
+      responses:
+        '200':
+          description: The agent.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Agent' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ─── agent tokens ──────────────────────────────────────────────────────────
+
+  /api/v1/agent-tokens:
+    get:
+      tags: [tokens]
+      summary: List agent tokens
+      description: |
+        Org-scoped, non-revoked only, ordered `created_at DESC`. The token hash
+        never leaves the hub.
+      operationId: listAgentTokens
+      responses:
+        '200':
+          description: Active agent tokens.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AgentToken' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/agent-tokens/{id}/revoke:
+    parameters:
+      - $ref: '#/components/parameters/TokenID'
+    post:
+      tags: [tokens]
+      summary: Revoke an agent token
+      operationId: revokeAgentToken
+      responses:
+        '204':
+          description: Revoked.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: |
+            Unknown token, already revoked, or belonging to another org — all
+            three answer 404.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ─── jobs ──────────────────────────────────────────────────────────────────
+
+  /api/v1/jobs:
+    get:
+      tags: [jobs]
+      summary: List jobs
+      description: Org-scoped, ordered `created_at DESC`. No pagination or filters.
+      operationId: listJobs
+      responses:
+        '200':
+          description: All jobs in the caller's org.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Job' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalError' }
+    post:
+      tags: [jobs]
+      summary: Dispatch a job to an agent
+      description: |
+        Creates the job in state `accepted` and pushes it to the agent over the
+        gRPC stream. No `job.status` event is emitted for the creation itself —
+        the client learns the job exists from this response.
+      operationId: dispatchJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DispatchJobRequest' }
+      responses:
+        '201':
+          description: The created job.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '400':
+          description: Undecodable body, missing `agent_id`, or missing `spec.image`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The agent exists but has no live gRPC stream.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '502':
+          description: |
+            The agent disconnected between the liveness check and the send. The
+            job row is transitioned to `failed`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/v1/jobs/{id}:
+    parameters:
+      - $ref: '#/components/parameters/JobID'
+    get:
+      tags: [jobs]
+      summary: Get a job
+      operationId: getJob
+      responses:
+        '200':
+          description: The job.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/jobs/{id}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/JobID'
+    post:
+      tags: [jobs]
+      summary: Cancel a job
+      description: |
+        Asks the agent to stop the job. The response body is the job **as it was
+        before cancellation** — the agent drives `stopping → cancelled`
+        asynchronously and the client observes it over `job.status` events.
+      operationId: cancelJob
+      responses:
+        '202':
+          description: Cancellation requested; job state is still the pre-cancel state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The job already reached a terminal state, or the agent is not connected.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/jobs/{id}/logs:
+    parameters:
+      - $ref: '#/components/parameters/JobID'
+    get:
+      tags: [jobs]
+      summary: Get a job's logs
+      description: |
+        The complete log, ordered `sequence ASC`. There is no `since`, `limit`,
+        `tail` or `follow` — the front seeds a buffer from this snapshot and
+        appends live lines from `job.log` WS events.
+      operationId: getJobLogs
+      responses:
+        '200':
+          description: Every log line recorded for the job.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/JobLog' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  # ─── websocket ─────────────────────────────────────────────────────────────
+
+  /ws:
+    get:
+      tags: [events]
+      summary: Live event stream (WebSocket upgrade)
+      description: |
+        Not a REST operation — documented so this file is a complete picture of
+        the boundary. Frames are JSON `HubEvent` values (see
+        `components/schemas/HubEvent`); the connection is server-push only,
+        client frames are read and discarded.
+
+        Auth is the JWT in the `token` query param (browsers cannot set headers
+        on a WS handshake); an `Authorization: Bearer` header also works for
+        proxied connections. Events are fanned out per-org at subscription time.
+
+        The hub pings every 30s and expects the connection to stay within a 60s
+        read deadline. The per-subscriber buffer is 64 events with a
+        non-blocking send: **a slow consumer silently drops events**, so the
+        client must treat the stream as best-effort and reconcile via REST.
+      operationId: eventStream
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: The session JWT.
+          schema: { type: string }
+      responses:
+        '101':
+          description: Switching Protocols — the WebSocket is established.
+        '401':
+          description: |
+            Missing or invalid token. Unlike every other endpoint, this one
+            answers `text/plain` (`unauthorized\n`), not the JSON error shape.
+          content:
+            text/plain:
+              schema: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        HS256 session JWT with `uid` (user) and `oid` (org) claims, 24h TTL.
+        Issued by the GitHub OAuth callback. Every request is scoped to `oid`;
+        there is no org path or query parameter anywhere in this API.
+
+  parameters:
+    AgentID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    JobID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    TokenID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: |
+        No such resource in the caller's org. Cross-tenant access is reported as
+        404, never 403 — this API has no 403.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    BadRequest:
+      description: Malformed or invalid request.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: |
+        Per-IP token bucket on the public routes (0.5/s refill, burst 10).
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InternalError:
+      description: Unexpected server-side failure.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    # ─── errors ──────────────────────────────────────────────────────────────
+
+    Error:
+      type: object
+      description: The single error shape used by every non-2xx JSON response.
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    # ─── enums ───────────────────────────────────────────────────────────────
+
+    # x-enum-varnames keeps the generated Go constants prefixed and identical to
+    # the hub's existing domain constants (domain.AgentStatusOnline, ...).
+    # Without it oapi-codegen only prefixes on collision, yielding package-level
+    # names like api.Online and api.Always in a shared contract package.
+
+    AgentStatus:
+      type: string
+      enum: [online, offline]
+      x-enum-varnames: [AgentStatusOnline, AgentStatusOffline]
+
+    JobState:
+      type: string
+      description: |
+        `unspecified` is reachable when an agent reports a status the hub cannot
+        map; it is not a state a healthy job passes through.
+      enum:
+        - unspecified
+        - accepted
+        - pulling_image
+        - creating_container
+        - starting_container
+        - running
+        - stopping
+        - cancelled
+        - succeeded
+        - failed
+        - timed_out
+      x-enum-varnames:
+        - JobStateUnspecified
+        - JobStateAccepted
+        - JobStatePullingImage
+        - JobStateCreatingContainer
+        - JobStateStartingContainer
+        - JobStateRunning
+        - JobStateStopping
+        - JobStateCancelled
+        - JobStateSucceeded
+        - JobStateFailed
+        - JobStateTimedOut
+
+    LogStream:
+      type: string
+      enum: [unspecified, stdout, stderr]
+      x-enum-varnames: [LogStreamUnspecified, LogStreamStdout, LogStreamStderr]
+
+    PullPolicy:
+      type: string
+      enum: [unspecified, always, if_not_present, never]
+      x-enum-varnames:
+        - PullPolicyUnspecified
+        - PullPolicyAlways
+        - PullPolicyIfNotPresent
+        - PullPolicyNever
+
+    # ─── domain ──────────────────────────────────────────────────────────────
+
+    User:
+      type: object
+      required: [id, email, name, avatar_url, org_id]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        avatar_url: { type: string }
+        org_id:
+          type: string
+          format: uuid
+          description: Taken from the JWT claim, not the user record.
+
+    Agent:
+      type: object
+      required: [id, name, description, version, hostname, status, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        version: { type: string }
+        hostname: { type: string }
+        status: { $ref: '#/components/schemas/AgentStatus' }
+        last_seen_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        cpu_usage_percent:
+          type: number
+          format: float
+          description: Latest heartbeat snapshot. Absent until the agent first reports.
+        memory_used_bytes: { type: integer, format: int64 }
+        memory_total_bytes: { type: integer, format: int64 }
+        disk_used_bytes: { type: integer, format: int64 }
+        disk_total_bytes: { type: integer, format: int64 }
+        running_containers: { type: integer, format: int32 }
+
+    AgentToken:
+      type: object
+      required: [id, name, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        agent_id:
+          type: string
+          format: uuid
+          description: Set once the token is bound to a paired agent.
+        created_at: { type: string, format: date-time }
+        last_used_at: { type: string, format: date-time }
+
+    VolumeMount:
+      type: object
+      required: [host_path, container_path, read_only]
+      properties:
+        host_path: { type: string }
+        container_path: { type: string }
+        read_only: { type: boolean }
+
+    ResourceLimits:
+      type: object
+      required: [memory_bytes, cpu_cores]
+      properties:
+        memory_bytes: { type: integer, format: int64 }
+        cpu_cores: { type: number, format: float }
+
+    JobSpec:
+      type: object
+      description: |
+        What to run in Docker. `image` is the only required — and the only
+        validated — field.
+
+        Optional scalars carry `x-go-type-skip-optional-pointer` so the
+        generated Go struct mirrors `domain.JobSpec` field for field, keeping
+        the transport ↔ domain mapper mechanical.
+      required: [image]
+      properties:
+        image:
+          type: string
+        command:
+          type: array
+          items: { type: string }
+          x-go-type-skip-optional-pointer: true
+        args:
+          type: array
+          items: { type: string }
+          x-go-type-skip-optional-pointer: true
+        env:
+          type: object
+          additionalProperties: { type: string }
+          x-go-type-skip-optional-pointer: true
+        volume_mounts:
+          type: array
+          items: { $ref: '#/components/schemas/VolumeMount' }
+          x-go-type-skip-optional-pointer: true
+        resource_limits:
+          $ref: '#/components/schemas/ResourceLimits'
+        working_dir:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        network_mode:
+          type: string
+          x-go-type-skip-optional-pointer: true
+        labels:
+          type: object
+          additionalProperties: { type: string }
+          x-go-type-skip-optional-pointer: true
+        pull_policy:
+          allOf:
+            - $ref: '#/components/schemas/PullPolicy'
+          x-go-type-skip-optional-pointer: true
+        privileged:
+          type: boolean
+          x-go-type-skip-optional-pointer: true
+        timeout_seconds:
+          type: integer
+          format: int32
+          x-go-type-skip-optional-pointer: true
+
+    Job:
+      type: object
+      required: [id, agent_id, state, spec, message, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        agent_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/JobState' }
+        spec: { $ref: '#/components/schemas/JobSpec' }
+        message: { type: string }
+        exit_code: { type: integer, format: int32 }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    JobLog:
+      type: object
+      required: [id, line, stream, sequence, timestamp]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: |
+            Autoincrement row id — the only non-UUID identifier in this API.
+          x-go-type: uint64
+        line: { type: string }
+        stream: { $ref: '#/components/schemas/LogStream' }
+        sequence:
+          type: integer
+          format: int64
+          description: Per-job ordering key, assigned by the agent.
+        timestamp: { type: string, format: date-time }
+
+    # ─── request bodies ──────────────────────────────────────────────────────
+
+    DispatchJobRequest:
+      type: object
+      required: [agent_id, spec]
+      properties:
+        agent_id: { type: string, format: uuid }
+        spec: { $ref: '#/components/schemas/JobSpec' }
+
+    DeviceAuthorizeResponse:
+      type: object
+      required:
+        [device_code, user_code, verification_uri, expires_in, interval, grpc_addr]
+      properties:
+        device_code:
+          type: string
+          description: 32 lowercase hex chars. Polled by the agent CLI.
+        user_code:
+          type: string
+          description: |
+            `XXXX-XXXX` from the ambiguity-free alphabet
+            `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`. Typed by the human.
+        verification_uri:
+          type: string
+          description: '`{FRONTEND_URL}/device?code={user_code}`'
+        expires_in:
+          type: integer
+          description: Seconds until the device code expires (TTL is 10 minutes).
+        interval:
+          type: integer
+          description: Seconds the agent should wait between polls.
+        grpc_addr:
+          type: string
+          description: Where the paired agent should open its gRPC stream.
+
+    DeviceTokenRequest:
+      type: object
+      required: [device_code]
+      properties:
+        device_code: { type: string }
+
+    DeviceTokenResponse:
+      type: object
+      required: [access_token, token_type]
+      properties:
+        access_token:
+          type: string
+          description: |
+            Opaque agent token (base64url, 32 random bytes) — **not** a JWT.
+            Presented as gRPC metadata by the agent.
+        token_type:
+          type: string
+          enum: [Bearer]
+          x-enum-varnames: [TokenTypeBearer]
+
+    DeviceApproveRequest:
+      type: object
+      required: [user_code]
+      properties:
+        user_code: { type: string }
+
+    # ─── websocket events ────────────────────────────────────────────────────
+    #
+    # Excluded from Go generation (see oapi-codegen.yaml): the oneOf renders as
+    # a json.RawMessage wrapper, whereas the hub already has a flat, hand-written
+    # events.Event envelope carrying an OrgID routing key that never goes on the
+    # wire. The payload schemas below the union ARE generated and used by both
+    # sides. Deliberately no `discriminator` keyword — the literal `type` enums
+    # discriminate the union in TypeScript on their own, and a discriminator
+    # whose mapping is many-to-one confuses generators to no benefit.
+
+    JobStatusPayload:
+      type: object
+      required: [state]
+      properties:
+        state: { $ref: '#/components/schemas/JobState' }
+        message:
+          type: string
+          # Empty string and absent mean the same thing here, so the Go side
+          # keeps a plain string with omitempty rather than a *string.
+          x-go-type-skip-optional-pointer: true
+        exit_code: { type: integer, format: int32 }
+
+    LogLine:
+      type: object
+      required: [line, stream, sequence, timestamp]
+      properties:
+        line: { type: string }
+        stream: { $ref: '#/components/schemas/LogStream' }
+        sequence: { type: integer, format: int64 }
+        timestamp: { type: string, format: date-time }
+
+    JobLogPayload:
+      type: object
+      description: One event per job per flush batch, never one per line.
+      required: [lines]
+      properties:
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/LogLine' }
+
+    AgentEvent:
+      type: object
+      description: |
+        Agent lifecycle and liveness. Carries no `payload` — heartbeat metrics
+        are persisted on the agent record, not pushed, so a client wanting fresh
+        metrics refetches `/api/v1/agents`.
+
+        For `agent.heartbeat`, `at` is the **agent-supplied** timestamp; for the
+        other two it is hub time.
+      required: [type, agent_id, at]
+      properties:
+        type:
+          type: string
+          enum: [agent.connected, agent.disconnected, agent.heartbeat]
+        agent_id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+
+    JobStatusEvent:
+      type: object
+      description: |
+        Emitted only when a guarded state transition actually applied, so
+        duplicates are already suppressed hub-side.
+      required: [type, agent_id, job_id, at, payload]
+      properties:
+        type:
+          type: string
+          enum: [job.status]
+        agent_id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+        payload: { $ref: '#/components/schemas/JobStatusPayload' }
+
+    JobLogEvent:
+      type: object
+      description: Emitted after the log batch is durably written.
+      required: [type, agent_id, job_id, at, payload]
+      properties:
+        type:
+          type: string
+          enum: [job.log]
+        agent_id: { type: string, format: uuid }
+        job_id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+        payload: { $ref: '#/components/schemas/JobLogPayload' }
+
+    HubEvent:
+      description: A single frame on the `/ws` stream.
+      oneOf:
+        - $ref: '#/components/schemas/AgentEvent'
+        - $ref: '#/components/schemas/JobStatusEvent'
+        - $ref: '#/components/schemas/JobLogEvent'

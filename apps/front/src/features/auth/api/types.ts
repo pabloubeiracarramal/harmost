@@ -1,7 +1,3 @@
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  avatar_url: string;
-  org_id: string;
-}
+import type { components } from '@/shared/api/schema';
+
+export type User = components['schemas']['User'];

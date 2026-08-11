@@ -3,5 +3,6 @@ go 1.26.3
 use (
 	./apps/agent
 	./apps/hub
+	./libs/harmost-api
 	./libs/harmost-proto
 )

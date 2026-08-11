@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/v2.7.2/configuration-schema.json
+package: api
+output: gen/api.gen.go
+generate:
+  # Models only — the hub's chi handlers keep their current shape (ADR 0010).
+  # No chi-server/strict-server: this contract shares wire *shapes*, not routing.
+  models: true
+output-options:
+  # ID / AgentID / CPUUsagePercent rather than Id / AgentId / CpuUsagePercent.
+  name-normalizer: ToCamelCaseWithInitialisms
+  # JobStatusPayload/JobLogPayload/LogLine are reachable only through the
+  # excluded event schemas, so pruning would drop the very types events/bus.go
+  # needs. Keep every component schema.
+  skip-prune: true
+  additional-initialisms:
+    - GRPC
+  type-mapping:
+    string:
+      formats:
+        # The hub models every identifier as a plain string (domain.Model.ID is
+        # `string`, GORM-typed as uuid in Postgres). `format: uuid` stays in the
+        # spec for documentation and TS/tooling value, but must not drag
+        # google/uuid into the hub and force parsing in every mapper.
+        uuid:
+          type: string
+        email:
+          type: string
+  exclude-schemas:
+    # The WS event union renders in Go as a json.RawMessage wrapper with
+    # As*/From* helpers — clumsy next to the flat events.Event envelope, which
+    # stays hand-written (it carries OrgID as a routing key that never goes on
+    # the wire). Only the payload schemas below it are generated and used.
+    - HubEvent
+    - AgentEvent
+    - JobStatusEvent
+    - JobLogEvent

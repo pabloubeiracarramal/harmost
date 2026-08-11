@@ -11,6 +11,34 @@ How to run the stack and poke at every surface of it while you build.
    GitHub OAuth app (callback `http://localhost:8080/auth/github/callback`).
 3. **psql** — `sudo apt-get install -y postgresql-client` (needed to browse the
    dev DB; there's no bundled browser client).
+4. **Go tools** — several Nx targets shell out to `$(go env GOPATH)/bin/<tool>`,
+   so these must be on disk before those targets work. Make sure `$(go env GOPATH)/bin`
+   is on your `PATH`:
+
+   ```sh
+   go install github.com/air-verse/air@latest                  # hub:dev (live reload)
+   go install github.com/pressly/goose/v3/cmd/goose@latest     # hub:migrate, workspace:db:reset
+   go install github.com/bufbuild/buf/cmd/buf@latest           # harmost-proto:generate, :lint
+   ```
+
+   `oapi-codegen` (`harmost-api:generate`) needs **no** install — it is pinned as a
+   `tool` directive in `libs/harmost-api/go.mod` and invoked via `go tool`.
+
+## Code generation
+
+Two contracts generate code; both outputs are committed, and neither should ever
+be hand-edited (ADR 0002, ADR 0010):
+
+```sh
+nx run harmost-proto:generate   # agent.proto  → Go for hub + agent
+nx run harmost-api:generate     # openapi.yaml → Go models + front TS types
+nx run harmost-api:check        # regenerate and fail on any diff
+nx run harmost-api:lint         # validate the OpenAPI document
+```
+
+After changing `libs/harmost-api/openapi.yaml`, run `nx run harmost-api:generate`,
+then `nx run hub:build` and `nx run front:typecheck` — the typecheck is the only
+thing that catches drift on the TypeScript side.
 
 ## Daily workflow
 

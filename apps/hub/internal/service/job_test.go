@@ -88,7 +88,7 @@ func TestHandleStatusUpdate_AppliedPublishes(t *testing.T) {
 	assert.Equal(t, "job-1", e.JobID)
 	payload, ok := e.Payload.(events.JobStatusPayload)
 	require.True(t, ok)
-	assert.Equal(t, "succeeded", payload.State)
+	assert.Equal(t, events.JobState("succeeded"), payload.State)
 }
 
 func TestHandleStatusUpdate_LateTerminalDropped(t *testing.T) {

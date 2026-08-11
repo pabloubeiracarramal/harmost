@@ -11,9 +11,19 @@ Harmost is a CI/CD orchestration SaaS: a cloud-hosted **hub** (Go) dispatches Do
 | `apps/hub` | Go backend — REST/WS + gRPC server + PostgreSQL (see `apps/hub/CLAUDE.md`) |
 | `apps/agent` | Go CLI/daemon — Docker job executor (see `apps/agent/CLAUDE.md`) |
 | `libs/harmost-proto` | Protobuf contract (buf) shared by hub and agent |
+| `libs/harmost-api` | OpenAPI 3.1 contract shared by hub and front — generates Go models + TS types (see ADR 0010) |
 | `docs/` | architecture, roadmap, status, dev guide, ADRs |
 
-Everything runs through Nx: `nx run <project>:<target>`. Projects: `front`, `hub`, `agent`, `workspace` (root targets: `dev`, `db`, `db:reset`, `grpc:ui`).
+Everything runs through Nx: `nx run <project>:<target>`. Projects: `front`, `hub`, `agent`, `harmost-proto`, `harmost-api`, `workspace` (root targets: `dev`, `db`, `db:reset`, `grpc:ui`).
+
+## Wire contracts
+
+Neither boundary's types are hand-written on both sides — change the contract, then regenerate:
+
+- **hub ↔ agent** — `libs/harmost-proto/proto/harmost/v1/agent.proto` → `nx run harmost-proto:generate`
+- **hub ↔ front** — `libs/harmost-api/openapi.yaml` → `nx run harmost-api:generate` (emits `libs/harmost-api/gen/api.gen.go` and `apps/front/src/shared/api/schema.d.ts`)
+
+Generated output is committed. Never hand-edit it, and never reintroduce a hand-written wire type alongside it. `nx run harmost-api:check` regenerates and fails on any diff.
 
 
 ## Agent Behavior

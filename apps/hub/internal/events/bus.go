@@ -3,6 +3,8 @@ package events
 import (
 	"sync"
 	"time"
+
+	api "github.com/harmost/api/gen"
 )
 
 type EventType string
@@ -15,6 +17,11 @@ const (
 	JobLog            EventType = "job.log"
 )
 
+// Event is the envelope written to each /ws frame. It stays hand-written rather
+// than generated: OrgID is the bus routing key and never goes on the wire, and
+// the generated HubEvent is a oneOf union that would be clumsy to publish into.
+// The payloads below it are generated, so the front's types come from the same
+// source. See libs/harmost-api/openapi.yaml.
 type Event struct {
 	Type    EventType `json:"type"`
 	OrgID   string    `json:"-"`
@@ -24,26 +31,16 @@ type Event struct {
 	Payload any       `json:"payload,omitempty"`
 }
 
-// JobStatusPayload is the payload of a job.status event.
-type JobStatusPayload struct {
-	State    string `json:"state"`
-	Message  string `json:"message,omitempty"`
-	ExitCode *int32 `json:"exit_code,omitempty"`
-}
-
-// LogLine is one log line inside a job.log event.
-type LogLine struct {
-	Line      string    `json:"line"`
-	Stream    string    `json:"stream"`
-	Sequence  int64     `json:"sequence"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-// JobLogPayload is the payload of a job.log event — one event per job per
-// flush batch, never per line.
-type JobLogPayload struct {
-	Lines []LogLine `json:"lines"`
-}
+// Payload types for job.status and job.log events, generated from the OpenAPI
+// contract shared with the front. Re-exported so publishers depend on the bus's
+// vocabulary rather than importing the contract package directly.
+type (
+	JobStatusPayload = api.JobStatusPayload
+	JobLogPayload    = api.JobLogPayload
+	LogLine          = api.LogLine
+	JobState         = api.JobState
+	LogStream        = api.LogStream
+)
 
 type Bus struct {
 	mu   sync.RWMutex

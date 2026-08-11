@@ -130,7 +130,7 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 			for _, l := range logBuf {
 				byJob[l.JobID] = append(byJob[l.JobID], events.LogLine{
 					Line:      l.Line,
-					Stream:    string(l.Stream),
+					Stream:    events.LogStream(l.Stream),
 					Sequence:  l.Sequence,
 					Timestamp: l.Timestamp,
 				})

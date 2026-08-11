@@ -1,6 +1,9 @@
 import type { JobState } from '../api/types';
 
 const STYLES: Record<JobState, string> = {
+  // Reachable when the hub cannot map an agent-reported status; rendered
+  // neutrally rather than hidden, so an unmappable job is still visible.
+  unspecified: 'bg-neutral-700/60 text-neutral-400',
   accepted: 'bg-neutral-700/60 text-neutral-300',
   pulling_image: 'bg-sky-500/10 text-sky-400',
   creating_container: 'bg-sky-500/10 text-sky-400',

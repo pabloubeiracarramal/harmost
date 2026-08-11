@@ -3,21 +3,11 @@ package httpapi
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+	api "github.com/harmost/api/gen"
 	"github.com/harmost/hub/internal/domain"
 )
-
-// agentTokenResponse deliberately omits TokenHash — even the hash never
-// leaves the hub.
-type agentTokenResponse struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	AgentID    *string    `json:"agent_id,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
-	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
-}
 
 func (s *Server) listAgentTokens(w http.ResponseWriter, r *http.Request) {
 	orgID := orgIDFromCtx(r.Context())
@@ -26,9 +16,11 @@ func (s *Server) listAgentTokens(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to list tokens")
 		return
 	}
-	out := make([]agentTokenResponse, len(tokens))
+	// api.AgentToken deliberately has no TokenHash — even the hash never
+	// leaves the hub.
+	out := make([]api.AgentToken, len(tokens))
 	for i, t := range tokens {
-		out[i] = agentTokenResponse{
+		out[i] = api.AgentToken{
 			ID:         t.ID,
 			Name:       t.Name,
 			AgentID:    t.AgentID,
