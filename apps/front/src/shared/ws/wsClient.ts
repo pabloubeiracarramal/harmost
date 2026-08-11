@@ -8,6 +8,7 @@ import type { components } from '@/shared/api/schema';
 export type AgentEvent = components['schemas']['AgentEvent'];
 export type JobStatusEvent = components['schemas']['JobStatusEvent'];
 export type JobLogEvent = components['schemas']['JobLogEvent'];
+export type ContainersEvent = components['schemas']['ContainersEvent'];
 export type LogLine = components['schemas']['LogLine'];
 export type HubEvent = components['schemas']['HubEvent'];
 

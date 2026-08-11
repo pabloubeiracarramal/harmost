@@ -11,6 +11,7 @@ import (
 	"time"
 
 	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
+	"github.com/moby/moby/api/types/container"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -138,4 +139,10 @@ func (m *Manager) RunningJobIDs() []string {
 		ids = append(ids, id)
 	}
 	return ids
+}
+
+// ListRunningContainers delegates to the underlying Docker client, for the
+// agent detail page's live containers view.
+func (m *Manager) ListRunningContainers(ctx context.Context) ([]container.Summary, error) {
+	return m.docker.ListRunningContainers(ctx)
 }

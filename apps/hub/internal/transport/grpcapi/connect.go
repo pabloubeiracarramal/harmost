@@ -90,6 +90,17 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 
 	s.reg.add(agent.ID, safeSend)
 	defer s.reg.remove(agent.ID)
+
+	// A watch from before this (re)connect doesn't survive on the agent
+	// side — its own stream-scoped state died with the old stream — so
+	// resend it if anyone is still watching.
+	if s.reg.watcherCount(agent.ID) > 0 {
+		_ = safeSend(&harmostv1.HubMessage{
+			Payload: &harmostv1.HubMessage_WatchContainers{
+				WatchContainers: &harmostv1.WatchContainersRequest{},
+			},
+		})
+	}
 	defer func() {
 		s.svc.Agent.Disconnect(context.Background(), agent.ID)
 		s.bus.Publish(events.Event{
@@ -218,6 +229,26 @@ func (s *Server) handleMessage(
 
 	case *harmostv1.AgentMessage_Pong:
 		// latency tracking not implemented yet
+
+	case *harmostv1.AgentMessage_ContainerList:
+		containers := make([]events.ContainerInfo, len(p.ContainerList.Containers))
+		for i, c := range p.ContainerList.Containers {
+			containers[i] = events.ContainerInfo{
+				ID:        c.Id,
+				Image:     c.Image,
+				Name:      c.Name,
+				State:     c.State,
+				Status:    c.Status,
+				StartedAt: c.StartedAt.AsTime(),
+			}
+		}
+		s.bus.Publish(events.Event{
+			Type:    events.AgentContainers,
+			OrgID:   orgID,
+			AgentID: agentID,
+			At:      time.Now(),
+			Payload: events.ContainersPayload{Containers: containers},
+		})
 	}
 }
 

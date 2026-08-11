@@ -15,10 +15,12 @@ service AgentService {
 
 message HubMessage {
   oneof payload {
-    DispatchJobRequest  dispatch_job          = 1;
-    CancelJobRequest    cancel_job            = 2;
-    SetHeartbeatInterval set_heartbeat_interval = 3;
-    Ping                ping                  = 4;
+    DispatchJobRequest      dispatch_job         = 1;
+    CancelJobRequest        cancel_job           = 2;
+    SetHeartbeatInterval    set_heartbeat_interval = 3;
+    Ping                    ping                 = 4;
+    WatchContainersRequest  watch_containers     = 5;
+    UnwatchContainersRequest unwatch_containers  = 6;
   }
 }
 
@@ -40,6 +42,14 @@ message Ping {
   google.protobuf.Timestamp sent_at = 1;
 }
 
+// Sent when a front client opens the agent detail page. The agent starts
+// pushing ContainerListUpdate on a fixed interval until UnwatchContainersRequest
+// or the stream drops.
+message WatchContainersRequest {}
+
+// Sent when the last front client watching this agent's containers goes away.
+message UnwatchContainersRequest {}
+
 // ─── Agent → Hub ─────────────────────────────────────────────────────────────
 
 message AgentMessage {
@@ -49,6 +59,7 @@ message AgentMessage {
     LogChunk         log_chunk     = 3;
     Heartbeat        heartbeat     = 4;
     Pong             pong          = 5;
+    ContainerListUpdate container_list = 6;
   }
 }
 
@@ -99,6 +110,21 @@ message SystemMetrics {
 message Pong {
   google.protobuf.Timestamp ping_sent_at  = 1;
   google.protobuf.Timestamp received_at  = 2;
+}
+
+message ContainerInfo {
+  string                     id         = 1;
+  string                     image      = 2;
+  string                     name       = 3;
+  string                     state      = 4;
+  string                     status     = 5;
+  google.protobuf.Timestamp started_at = 6;
+}
+
+// Sent on a fixed interval (independent of Heartbeat) while a
+// WatchContainersRequest is active. Running containers only.
+message ContainerListUpdate {
+  repeated ContainerInfo containers = 1;
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────

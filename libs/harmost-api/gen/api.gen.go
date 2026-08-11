@@ -166,6 +166,24 @@ type AgentToken struct {
 	Name       string     `json:"name"`
 }
 
+// ContainerInfo A single running container on an agent's host, as reported by the
+// Docker SDK. `started_at` is the container's creation time (the list
+// endpoint doesn't expose a separate start time, and running-only
+// filtering makes the two coincide for practical purposes).
+type ContainerInfo struct {
+	ID        string    `json:"id"`
+	Image     string    `json:"image"`
+	Name      string    `json:"name"`
+	StartedAt time.Time `json:"started_at"`
+	State     string    `json:"state"`
+	Status    string    `json:"status"`
+}
+
+// ContainersPayload Snapshot of every running container on the agent's host.
+type ContainersPayload struct {
+	Containers []ContainerInfo `json:"containers"`
+}
+
 // DeviceApproveRequest defines model for DeviceApproveRequest.
 type DeviceApproveRequest struct {
 	UserCode string `json:"user_code"`

@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWsSubscribe } from '@/shared/ws/useWsSubscribe';
 import type { HubEvent } from '@/shared/ws/wsClient';
 import { agentKeys } from './keys';
-import type { Agent } from './types';
+import type { Agent, ContainerInfo } from './types';
 
 /** Applies agent.connected/disconnected/heartbeat events to the agents list cache. */
 export function useAgentsListSocket() {
@@ -37,5 +37,16 @@ export function useAgentDetailSocket(id: string) {
     if (e.type.startsWith('agent.') && e.agent_id === id) {
       queryClient.invalidateQueries({ queryKey: agentKeys.detail(id) });
     }
+  });
+}
+
+/**
+ * Forwards live agent.containers snapshots for a single agent. Push-only,
+ * never fetched via REST, so — like job logs — it stays out of the query
+ * cache; the caller owns its own buffer, this just feeds it.
+ */
+export function useAgentContainersSocket(id: string, onContainers: (containers: ContainerInfo[]) => void) {
+  useWsSubscribe((e: HubEvent) => {
+    if (e.type === 'agent.containers' && e.agent_id === id) onContainers(e.payload.containers);
   });
 }

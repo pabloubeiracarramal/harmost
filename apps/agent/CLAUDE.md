@@ -75,7 +75,7 @@ apps/agent/
     ├── daemon/
     │   └── program.go      # service.Interface: Start/Stop + backoff reconnect loop
     ├── docker/
-    │   ├── docker.go       # Moby SDK client wrapper (New, Ping, ListAllContainers)
+    │   ├── docker.go       # Moby SDK client wrapper (New, Ping, ListAllContainers, ListRunningContainers)
     │   ├── spec.go         # proto JobSpec → container.Config/HostConfig translation
     │   ├── run.go          # One job's lifecycle: pull → create → start → stream logs → wait
     │   └── manager.go      # Dispatch/Cancel — tracks running jobs, maps terminal JobStates

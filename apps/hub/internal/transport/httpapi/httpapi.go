@@ -20,6 +20,8 @@ type Dispatcher interface {
 	Dispatch(ctx context.Context, agentID string, job *domain.Job) error
 	Cancel(ctx context.Context, agentID, jobID string) error
 	Connected(agentID string) bool
+	WatchContainers(ctx context.Context, agentID string) error
+	UnwatchContainers(ctx context.Context, agentID string) error
 }
 
 type Server struct {
@@ -71,6 +73,8 @@ func (s *Server) Routes() http.Handler {
 
 		r.Get("/api/v1/agents", s.listAgents)
 		r.Get("/api/v1/agents/{id}", s.getAgent)
+		r.Post("/api/v1/agents/{id}/containers/watch", s.watchAgentContainers)
+		r.Post("/api/v1/agents/{id}/containers/unwatch", s.unwatchAgentContainers)
 
 		r.Get("/api/v1/agent-tokens", s.listAgentTokens)
 		r.Post("/api/v1/agent-tokens/{id}/revoke", s.revokeAgentToken)
