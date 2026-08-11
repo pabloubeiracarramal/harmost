@@ -42,7 +42,7 @@ src/
 - Trivial routes with no real composition behind them (`routes/index.tsx` — home redirect, `routes/__root.tsx` — router root layout, `routes/auth/callback.tsx` — a spinner + redirect effect) have no `pages/` counterpart; they're just the guard/effect, entirely in `routes/`.
 
 Each `features/<feature>/` follows:
-- `api/types.ts` — domain types (e.g. `Agent`, `Job`)
+- `api/types.ts` — domain types (e.g. `Agent`, `Job`), **re-exported from the generated `@/shared/api/schema`**, never hand-written. Add a field by editing `libs/harmost-api/openapi.yaml` and running `nx run harmost-api:generate` (ADR 0010). Runtime values keyed on those types (`TERMINAL_JOB_STATES`, `isTerminal`) still live here.
 - `api/keys.ts` — query key factory (`all -> lists -> list() -> details -> detail(id)`); **never** hand-write a `queryKey` array elsewhere
 - `api/queries.ts` — `useQuery` hooks (GET)
 - `api/mutations.ts` — `useMutation` hooks (POST/PATCH/DELETE)
@@ -81,7 +81,7 @@ Each `features/<feature>/` follows:
 | `nx run front:dev` (or `serve`) | Vite dev server on port 4200 |
 | `nx run front:build` | Production build → `dist/apps/front` |
 | `nx run front:test` | Vitest (watch=false) |
-| `nx run front:typecheck` | `tsc --noEmit` |
+| `nx run front:typecheck` | `tsc -p tsconfig.app.json --noEmit` — the only gate that catches generated-type drift |
 
 **MUST** use `nx run front:<target>` — never call `vite` or `tsc` directly.
 
@@ -113,7 +113,8 @@ Each `features/<feature>/` follows:
 ## Known Gotchas
 - `routeTree.gen.ts` is regenerated on every Vite start/build. If typecheck runs before a build, the file is still valid as a placeholder — do not delete it.
 - Tailwind v4 has no `tailwind.config.ts`. All theme customization goes in `src/styles.css` under `@theme`.
-- `shared/ws/wsClient.ts` types WS job-status payloads loosely (`state: string`) to avoid depending on `features/jobs`'s `JobState` type. `features/jobs/api/socket.ts` casts to `JobState` at the point it writes into the `Job` cache — a deliberate, narrow boundary cast; don't spread that pattern elsewhere.
+- `src/shared/api/schema.d.ts` is generated from `libs/harmost-api/openapi.yaml` by `nx run harmost-api:generate` (ADR 0010). Do not edit it, and do not run the generator from here — it is the `harmost-api` project's target.
+- `features/agents/api/socket.ts` narrows with `e.type.startsWith('agent.')`, which does **not** narrow the union in TypeScript. It compiles only because `agent_id` exists on all three event members; a new event type without `agent_id` will break it.
 
 ## Connections to Other Apps
 - Backend: **hub** — see [architecture overview](../../docs/architecture.md) for API details.

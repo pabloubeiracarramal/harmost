@@ -7,42 +7,16 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	api "github.com/harmost/api/gen"
 	"github.com/harmost/hub/internal/domain"
 )
 
-// ─── request / response types ────────────────────────────────────────────────
-
-type dispatchRequest struct {
-	AgentID string         `json:"agent_id"`
-	Spec    domain.JobSpec `json:"spec"`
-}
-
-type jobResponse struct {
-	ID         string         `json:"id"`
-	AgentID    string         `json:"agent_id"`
-	State      string         `json:"state"`
-	Spec       domain.JobSpec `json:"spec"`
-	Message    string         `json:"message"`
-	ExitCode   *int32         `json:"exit_code,omitempty"`
-	StartedAt  *time.Time     `json:"started_at,omitempty"`
-	FinishedAt *time.Time     `json:"finished_at,omitempty"`
-	CreatedAt  time.Time      `json:"created_at"`
-}
-
-type jobLogResponse struct {
-	ID        uint64    `json:"id"`
-	Line      string    `json:"line"`
-	Stream    string    `json:"stream"`
-	Sequence  int64     `json:"sequence"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-func toJobResponse(j domain.Job) jobResponse {
-	return jobResponse{
+func toJobResponse(j domain.Job) api.Job {
+	return api.Job{
 		ID:         j.ID,
 		AgentID:    j.AgentID,
-		State:      string(j.State),
-		Spec:       j.Spec,
+		State:      api.JobState(j.State),
+		Spec:       specToAPI(j.Spec),
 		Message:    j.Message,
 		ExitCode:   j.ExitCode,
 		StartedAt:  j.StartedAt,
@@ -51,11 +25,11 @@ func toJobResponse(j domain.Job) jobResponse {
 	}
 }
 
-func toJobLogResponse(l domain.JobLog) jobLogResponse {
-	return jobLogResponse{
+func toJobLogResponse(l domain.JobLog) api.JobLog {
+	return api.JobLog{
 		ID:        l.ID,
 		Line:      l.Line,
-		Stream:    string(l.Stream),
+		Stream:    api.LogStream(l.Stream),
 		Sequence:  l.Sequence,
 		Timestamp: l.Timestamp,
 	}
@@ -66,7 +40,7 @@ func toJobLogResponse(l domain.JobLog) jobLogResponse {
 func (s *Server) dispatchJob(w http.ResponseWriter, r *http.Request) {
 	orgID := orgIDFromCtx(r.Context())
 
-	var req dispatchRequest
+	var req api.DispatchJobRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -79,6 +53,7 @@ func (s *Server) dispatchJob(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "spec.image is required")
 		return
 	}
+	spec := specFromAPI(req.Spec)
 
 	// Reject before creating a row: unknown/foreign agent → 404 (lookup is
 	// org-scoped), known but disconnected agent → 409.
@@ -95,7 +70,7 @@ func (s *Server) dispatchJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	job, err := s.svc.Job.Dispatch(r.Context(), orgID, req.AgentID, req.Spec)
+	job, err := s.svc.Job.Dispatch(r.Context(), orgID, req.AgentID, spec)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to create job")
 		return
@@ -125,7 +100,7 @@ func (s *Server) listJobs(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to list jobs")
 		return
 	}
-	out := make([]jobResponse, len(jobs))
+	out := make([]api.Job, len(jobs))
 	for i, j := range jobs {
 		out[i] = toJobResponse(j)
 	}
@@ -187,7 +162,7 @@ func (s *Server) getJobLogs(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to get logs")
 		return
 	}
-	out := make([]jobLogResponse, len(logs))
+	out := make([]api.JobLog, len(logs))
 	for i, l := range logs {
 		out[i] = toJobLogResponse(l)
 	}

@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWsSubscribe } from '@/shared/ws/useWsSubscribe';
 import type { HubEvent, LogLine } from '@/shared/ws/wsClient';
 import { jobKeys } from './keys';
-import type { Job, JobState } from './types';
+import type { Job } from './types';
 
 /** Applies job.status events to the jobs list cache; refetches on jobs the list hasn't seen yet. */
 export function useJobsListSocket() {
@@ -21,7 +21,7 @@ export function useJobsListSocket() {
         j.id === e.job_id
           ? {
               ...j,
-              state: e.payload.state as JobState,
+              state: e.payload.state,
               message: e.payload.message ?? j.message,
               exit_code: e.payload.exit_code ?? j.exit_code,
             }
@@ -41,7 +41,7 @@ export function useJobDetailSocket(id: string) {
         prev
           ? {
               ...prev,
-              state: e.payload.state as JobState,
+              state: e.payload.state,
               message: e.payload.message ?? prev.message,
               exit_code: e.payload.exit_code ?? prev.exit_code,
             }

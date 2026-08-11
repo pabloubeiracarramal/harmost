@@ -69,7 +69,7 @@ func (s *JobService) applyStatus(ctx context.Context, job *domain.Job, in domain
 		JobID:   job.ID,
 		At:      time.Now(),
 		Payload: events.JobStatusPayload{
-			State:    string(in.State),
+			State:    events.JobState(in.State),
 			Message:  in.Message,
 			ExitCode: in.ExitCode,
 		},

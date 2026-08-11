@@ -1,0 +1,46 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "harmost-api",
+  "projectType": "library",
+  "sourceRoot": "libs/harmost-api",
+  "tags": ["lang:go", "scope:shared"],
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "go tool oapi-codegen -config oapi-codegen.yaml openapi.yaml",
+          "npx openapi-typescript openapi.yaml -o ../../apps/front/src/shared/api/schema.d.ts"
+        ],
+        "cwd": "libs/harmost-api",
+        "parallel": false
+      },
+      "cache": true,
+      "inputs": ["{projectRoot}/openapi.yaml", "{projectRoot}/oapi-codegen.yaml"],
+      "outputs": [
+        "{projectRoot}/gen",
+        "{workspaceRoot}/apps/front/src/shared/api/schema.d.ts"
+      ]
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "npx nx run harmost-api:generate --skip-nx-cache",
+          "git diff --exit-code -- libs/harmost-api/gen apps/front/src/shared/api/schema.d.ts"
+        ],
+        "cwd": ".",
+        "parallel": false
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx redocly lint openapi.yaml",
+        "cwd": "libs/harmost-api"
+      },
+      "cache": true,
+      "inputs": ["{projectRoot}/openapi.yaml"]
+    }
+  }
+}

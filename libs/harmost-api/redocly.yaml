@@ -1,0 +1,15 @@
+extends:
+  - recommended
+
+rules:
+  # Private, unpublished contract — no license block.
+  info-license: off
+
+  # /auth/github, /auth/github/callback and /ws genuinely have no 2xx: two are
+  # 307 browser redirects and one is a 101 WebSocket upgrade.
+  operation-2xx-response: off
+
+  # HubEvent is referenced by neither a path nor another schema *by design* —
+  # it types the /ws frames, which OpenAPI has no way to attach a schema to.
+  # Both hub and front generate their event types from it out-of-band.
+  no-unused-components: off
