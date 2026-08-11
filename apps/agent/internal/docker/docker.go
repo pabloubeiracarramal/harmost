@@ -41,3 +41,19 @@ func (d *Docker) ListAllContainers(ctx context.Context) ([]container.Summary, er
 	}
 	return res.Items, nil
 }
+
+// ListRunningContainers is ListAllContainers filtered to State == "running",
+// for the agent detail page's live containers view.
+func (d *Docker) ListRunningContainers(ctx context.Context) ([]container.Summary, error) {
+	all, err := d.ListAllContainers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	running := make([]container.Summary, 0, len(all))
+	for _, c := range all {
+		if c.State == container.StateRunning {
+			running = append(running, c)
+		}
+	}
+	return running, nil
+}

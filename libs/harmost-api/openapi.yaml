@@ -239,6 +239,46 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  /api/v1/agents/{id}/containers/watch:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+    post:
+      tags: [agents]
+      summary: Start watching an agent's running containers
+      description: |
+        Registers the caller's interest; the hub asks the agent to start
+        pushing `agent.containers` WS events (~5s interval) if it isn't
+        already. Multiple watchers of the same agent share one upstream
+        push — call `unwatch` once per `watch` to release yours (e.g. on
+        unmount) rather than once total.
+
+        Accepted even if the agent isn't currently connected: the watch
+        applies as soon as it (re)connects.
+      operationId: watchAgentContainers
+      responses:
+        '202':
+          description: Watch registered.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/agents/{id}/containers/unwatch:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+    post:
+      tags: [agents]
+      summary: Stop watching an agent's running containers
+      description: |
+        Releases the caller's interest. Once every watcher has released
+        theirs, the hub asks the agent to stop pushing.
+      operationId: unwatchAgentContainers
+      responses:
+        '202':
+          description: Watch released.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   # ─── agent tokens ──────────────────────────────────────────────────────────
 
   /api/v1/agent-tokens:
@@ -822,6 +862,31 @@ components:
           type: array
           items: { $ref: '#/components/schemas/LogLine' }
 
+    ContainerInfo:
+      type: object
+      description: |
+        A single running container on an agent's host, as reported by the
+        Docker SDK. `started_at` is the container's creation time (the list
+        endpoint doesn't expose a separate start time, and running-only
+        filtering makes the two coincide for practical purposes).
+      required: [id, image, name, state, status, started_at]
+      properties:
+        id: { type: string }
+        image: { type: string }
+        name: { type: string }
+        state: { type: string }
+        status: { type: string }
+        started_at: { type: string, format: date-time }
+
+    ContainersPayload:
+      type: object
+      description: Snapshot of every running container on the agent's host.
+      required: [containers]
+      properties:
+        containers:
+          type: array
+          items: { $ref: '#/components/schemas/ContainerInfo' }
+
     AgentEvent:
       type: object
       description: |
@@ -867,9 +932,25 @@ components:
         at: { type: string, format: date-time }
         payload: { $ref: '#/components/schemas/JobLogPayload' }
 
+    ContainersEvent:
+      type: object
+      description: |
+        Pushed on a fixed interval (~5s) while at least one front client has
+        the agent detail page open, independent of `agent.heartbeat`. No
+        `job_id` — this is agent-scoped, not job-scoped.
+      required: [type, agent_id, at, payload]
+      properties:
+        type:
+          type: string
+          enum: [agent.containers]
+        agent_id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+        payload: { $ref: '#/components/schemas/ContainersPayload' }
+
     HubEvent:
       description: A single frame on the `/ws` stream.
       oneOf:
         - $ref: '#/components/schemas/AgentEvent'
         - $ref: '#/components/schemas/JobStatusEvent'
         - $ref: '#/components/schemas/JobLogEvent'
+        - $ref: '#/components/schemas/ContainersEvent'

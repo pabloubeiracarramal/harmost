@@ -167,6 +167,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/{id}/containers/watch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start watching an agent's running containers
+         * @description Registers the caller's interest; the hub asks the agent to start
+         *     pushing `agent.containers` WS events (~5s interval) if it isn't
+         *     already. Multiple watchers of the same agent share one upstream
+         *     push — call `unwatch` once per `watch` to release yours (e.g. on
+         *     unmount) rather than once total.
+         *
+         *     Accepted even if the agent isn't currently connected: the watch
+         *     applies as soon as it (re)connects.
+         */
+        post: operations["watchAgentContainers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{id}/containers/unwatch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop watching an agent's running containers
+         * @description Releases the caller's interest. Once every watcher has released
+         *     theirs, the hub asks the agent to stop pushing.
+         */
+        post: operations["unwatchAgentContainers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent-tokens": {
         parameters: {
             query?: never;
@@ -534,6 +586,25 @@ export interface components {
             lines: components["schemas"]["LogLine"][];
         };
         /**
+         * @description A single running container on an agent's host, as reported by the
+         *     Docker SDK. `started_at` is the container's creation time (the list
+         *     endpoint doesn't expose a separate start time, and running-only
+         *     filtering makes the two coincide for practical purposes).
+         */
+        ContainerInfo: {
+            id: string;
+            image: string;
+            name: string;
+            state: string;
+            status: string;
+            /** Format: date-time */
+            started_at: string;
+        };
+        /** @description Snapshot of every running container on the agent's host. */
+        ContainersPayload: {
+            containers: components["schemas"]["ContainerInfo"][];
+        };
+        /**
          * @description Agent lifecycle and liveness. Carries no `payload` — heartbeat metrics
          *     are persisted on the agent record, not pushed, so a client wanting fresh
          *     metrics refetches `/api/v1/agents`.
@@ -576,8 +647,22 @@ export interface components {
             at: string;
             payload: components["schemas"]["JobLogPayload"];
         };
+        /**
+         * @description Pushed on a fixed interval (~5s) while at least one front client has
+         *     the agent detail page open, independent of `agent.heartbeat`. No
+         *     `job_id` — this is agent-scoped, not job-scoped.
+         */
+        ContainersEvent: {
+            /** @enum {string} */
+            type: "agent.containers";
+            /** Format: uuid */
+            agent_id: string;
+            /** Format: date-time */
+            at: string;
+            payload: components["schemas"]["ContainersPayload"];
+        };
         /** @description A single frame on the `/ws` stream. */
-        HubEvent: components["schemas"]["AgentEvent"] | components["schemas"]["JobStatusEvent"] | components["schemas"]["JobLogEvent"];
+        HubEvent: components["schemas"]["AgentEvent"] | components["schemas"]["JobStatusEvent"] | components["schemas"]["JobLogEvent"] | components["schemas"]["ContainersEvent"];
     };
     responses: {
         /** @description Missing or invalid bearer token. */
@@ -883,6 +968,52 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Agent"];
                 };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    watchAgentContainers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Watch registered. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    unwatchAgentContainers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Watch released. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];

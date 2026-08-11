@@ -34,3 +34,4 @@ output-options:
     - AgentEvent
     - JobStatusEvent
     - JobLogEvent
+    - ContainersEvent

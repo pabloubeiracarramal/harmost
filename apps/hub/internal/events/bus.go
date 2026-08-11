@@ -13,6 +13,7 @@ const (
 	AgentConnected    EventType = "agent.connected"
 	AgentDisconnected EventType = "agent.disconnected"
 	AgentHeartbeat    EventType = "agent.heartbeat"
+	AgentContainers   EventType = "agent.containers"
 	JobStatus         EventType = "job.status"
 	JobLog            EventType = "job.log"
 )
@@ -35,11 +36,13 @@ type Event struct {
 // contract shared with the front. Re-exported so publishers depend on the bus's
 // vocabulary rather than importing the contract package directly.
 type (
-	JobStatusPayload = api.JobStatusPayload
-	JobLogPayload    = api.JobLogPayload
-	LogLine          = api.LogLine
-	JobState         = api.JobState
-	LogStream        = api.LogStream
+	JobStatusPayload  = api.JobStatusPayload
+	JobLogPayload     = api.JobLogPayload
+	LogLine           = api.LogLine
+	JobState          = api.JobState
+	LogStream         = api.LogStream
+	ContainersPayload = api.ContainersPayload
+	ContainerInfo     = api.ContainerInfo
 )
 
 type Bus struct {

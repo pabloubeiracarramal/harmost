@@ -1,10 +1,18 @@
 import { Link } from '@tanstack/react-router';
 import { AppShell } from '@/app/AppShell';
-import { useAgent, useAgentDetailSocket, MetricsCard, StatRow } from '@/features/agents';
+import {
+  useAgent,
+  useAgentDetailSocket,
+  useAgentContainers,
+  MetricsCard,
+  ContainersCard,
+  StatRow,
+} from '@/features/agents';
 
 export function AgentDetailPage({ id }: { id: string }) {
   const { data: agent, isLoading } = useAgent(id);
   useAgentDetailSocket(id);
+  const containers = useAgentContainers(id);
 
   if (isLoading) {
     return (
@@ -54,6 +62,9 @@ export function AgentDetailPage({ id }: { id: string }) {
 
         {/* Metrics */}
         {isOnline && <MetricsCard agent={agent} />}
+
+        {/* Containers */}
+        {isOnline && <ContainersCard containers={containers} />}
 
         {/* Info */}
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-5">
