@@ -233,14 +233,7 @@ func (s *Server) handleMessage(
 	case *harmostv1.AgentMessage_ContainerList:
 		containers := make([]events.ContainerInfo, len(p.ContainerList.Containers))
 		for i, c := range p.ContainerList.Containers {
-			containers[i] = events.ContainerInfo{
-				ID:        c.Id,
-				Image:     c.Image,
-				Name:      c.Name,
-				State:     c.State,
-				Status:    c.Status,
-				StartedAt: c.StartedAt.AsTime(),
-			}
+			containers[i] = protoContainerToEvent(c)
 		}
 		s.bus.Publish(events.Event{
 			Type:    events.AgentContainers,
@@ -249,6 +242,69 @@ func (s *Server) handleMessage(
 			At:      time.Now(),
 			Payload: events.ContainersPayload{Containers: containers},
 		})
+
+	case *harmostv1.AgentMessage_ContainerActionResult:
+		r := p.ContainerActionResult
+		s.bus.Publish(events.Event{
+			Type:    events.AgentContainerAction,
+			OrgID:   orgID,
+			AgentID: agentID,
+			At:      time.Now(),
+			Payload: events.ContainerActionPayload{
+				ContainerID: r.ContainerId,
+				Action:      events.ContainerActionKind(protoActionToString[r.Action]),
+				Success:     r.Success,
+				Error:       r.Error,
+			},
+		})
+	}
+}
+
+var protoActionToString = map[harmostv1.ContainerAction]string{
+	harmostv1.ContainerAction_CONTAINER_ACTION_START:   "start",
+	harmostv1.ContainerAction_CONTAINER_ACTION_STOP:    "stop",
+	harmostv1.ContainerAction_CONTAINER_ACTION_RESTART: "restart",
+	harmostv1.ContainerAction_CONTAINER_ACTION_REMOVE:  "remove",
+}
+
+func protoContainerToEvent(c *harmostv1.ContainerInfo) events.ContainerInfo {
+	ports := make([]events.ContainerPort, len(c.Ports))
+	for i, p := range c.Ports {
+		ports[i] = events.ContainerPort{
+			HostIP:      p.HostIp,
+			PrivatePort: int32(p.PrivatePort),
+			PublicPort:  int32(p.PublicPort),
+			Type:        p.Type,
+		}
+	}
+	volumes := make([]events.ContainerMount, len(c.Volumes))
+	for i, v := range c.Volumes {
+		volumes[i] = events.ContainerMount{
+			Type:        v.Type,
+			Name:        v.Name,
+			Source:      v.Source,
+			Destination: v.Destination,
+			ReadOnly:    v.ReadOnly,
+		}
+	}
+	var stats *events.ContainerStats
+	if c.Stats != nil {
+		stats = &events.ContainerStats{
+			CPUUsagePercent:  c.Stats.CpuUsagePercent,
+			MemoryUsageBytes: c.Stats.MemoryUsageBytes,
+			MemoryLimitBytes: c.Stats.MemoryLimitBytes,
+		}
+	}
+	return events.ContainerInfo{
+		ID:        c.Id,
+		Image:     c.Image,
+		Name:      c.Name,
+		State:     c.State,
+		Status:    c.Status,
+		StartedAt: c.StartedAt.AsTime(),
+		Ports:     ports,
+		Volumes:   volumes,
+		Stats:     stats,
 	}
 }
 

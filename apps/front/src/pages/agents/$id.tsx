@@ -12,7 +12,7 @@ import {
 export function AgentDetailPage({ id }: { id: string }) {
   const { data: agent, isLoading } = useAgent(id);
   useAgentDetailSocket(id);
-  const containers = useAgentContainers(id);
+  const { containers, pending, performAction } = useAgentContainers(id);
 
   if (isLoading) {
     return (
@@ -64,7 +64,9 @@ export function AgentDetailPage({ id }: { id: string }) {
         {isOnline && <MetricsCard agent={agent} />}
 
         {/* Containers */}
-        {isOnline && <ContainersCard containers={containers} />}
+        {isOnline && (
+          <ContainersCard containers={containers} pending={pending} onAction={performAction} />
+        )}
 
         {/* Info */}
         <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-5">

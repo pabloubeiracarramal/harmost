@@ -298,7 +298,50 @@ func (c *Client) handleMessage(ctx, watchStreamCtx context.Context, msg *harmost
 		c.startWatchingContainers(watchStreamCtx)
 	case *harmostv1.HubMessage_UnwatchContainers:
 		c.stopWatchingContainers()
+	case *harmostv1.HubMessage_ContainerAction:
+		// Stop/Restart can take several seconds (Docker's default 10s grace
+		// before SIGKILL) — must not block this goroutine, which also
+		// drives every other incoming message.
+		go c.performContainerAction(ctx, payload.ContainerAction)
 	}
+}
+
+// performContainerAction runs one lifecycle action, reports the outcome,
+// then immediately refreshes the container list — belt-and-suspenders on
+// top of the ~5s watch tick so the UI doesn't sit waiting for it.
+func (c *Client) performContainerAction(ctx context.Context, req *harmostv1.ContainerActionRequest) {
+	var err error
+	switch {
+	case c.mgr == nil:
+		err = fmt.Errorf("docker is not available on this agent")
+	default:
+		switch req.Action {
+		case harmostv1.ContainerAction_CONTAINER_ACTION_START:
+			err = c.mgr.StartContainer(ctx, req.ContainerId)
+		case harmostv1.ContainerAction_CONTAINER_ACTION_STOP:
+			err = c.mgr.StopContainer(ctx, req.ContainerId)
+		case harmostv1.ContainerAction_CONTAINER_ACTION_RESTART:
+			err = c.mgr.RestartContainer(ctx, req.ContainerId)
+		case harmostv1.ContainerAction_CONTAINER_ACTION_REMOVE:
+			err = c.mgr.RemoveContainer(ctx, req.ContainerId)
+		default:
+			err = fmt.Errorf("unknown action %s", req.Action)
+		}
+	}
+
+	result := &harmostv1.ContainerActionResult{
+		ContainerId: req.ContainerId,
+		Action:      req.Action,
+		Success:     err == nil,
+	}
+	if err != nil {
+		result.Error = err.Error()
+	}
+	c.Send(&harmostv1.AgentMessage{Payload: &harmostv1.AgentMessage_ContainerActionResult{
+		ContainerActionResult: result,
+	}})
+
+	c.pushContainerList(ctx)
 }
 
 // startWatchingContainers begins pushing ContainerListUpdate every
@@ -345,16 +388,32 @@ func (c *Client) watchContainersLoop(ctx context.Context) {
 	}
 }
 
+// pushContainerList lists every container on the host, any state, and
+// attaches a live resource-usage sample to the ones currently running (the
+// only state the stats endpoint accepts). One bad container's stats call
+// logs and is skipped rather than blanking the whole tick.
 func (c *Client) pushContainerList(ctx context.Context) {
 	var infos []*harmostv1.ContainerInfo
 	if c.mgr != nil {
-		list, err := c.mgr.ListRunningContainers(ctx)
+		list, err := c.mgr.ListContainers(ctx)
 		if err != nil {
-			log.Printf("agent: list running containers: %v", err)
+			log.Printf("agent: list containers: %v", err)
 		} else {
 			infos = make([]*harmostv1.ContainerInfo, len(list))
 			for i, item := range list {
-				infos[i] = toContainerInfo(item)
+				info := toContainerInfo(item)
+				if info.State == string(container.StateRunning) {
+					if cpuPct, memUsage, memLimit, err := c.mgr.ContainerStats(ctx, info.Id); err != nil {
+						log.Printf("agent: stats for %s: %v", info.Id, err)
+					} else {
+						info.Stats = &harmostv1.ContainerStats{
+							CpuUsagePercent:  float32(cpuPct),
+							MemoryUsageBytes: memUsage,
+							MemoryLimitBytes: memLimit,
+						}
+					}
+				}
+				infos[i] = info
 			}
 		}
 	}
@@ -375,7 +434,41 @@ func toContainerInfo(c container.Summary) *harmostv1.ContainerInfo {
 		State:     string(c.State),
 		Status:    c.Status,
 		StartedAt: timestamppb.New(time.Unix(c.Created, 0)),
+		Ports:     toContainerPorts(c.Ports),
+		Volumes:   toContainerMounts(c.Mounts),
 	}
+}
+
+func toContainerPorts(ports []container.PortSummary) []*harmostv1.ContainerPort {
+	out := make([]*harmostv1.ContainerPort, len(ports))
+	for i, p := range ports {
+		var hostIP string
+		if p.IP.IsValid() {
+			hostIP = p.IP.String()
+		}
+		out[i] = &harmostv1.ContainerPort{
+			HostIp:      hostIP,
+			PrivatePort: uint32(p.PrivatePort),
+			PublicPort:  uint32(p.PublicPort),
+			Type:        p.Type,
+		}
+	}
+	return out
+}
+
+func toContainerMounts(mounts []container.MountPoint) []*harmostv1.ContainerMount {
+	out := make([]*harmostv1.ContainerMount, len(mounts))
+	for i, m := range mounts {
+		out[i] = &harmostv1.ContainerMount{
+			Type:        string(m.Type),
+			Name:        m.Name,
+			Source:      m.Source,
+			Destination: m.Destination,
+			// RW means writable (read-write); the wire field is the negation.
+			ReadOnly: !m.RW,
+		}
+	}
+	return out
 }
 
 func Target(hubURL string) string {

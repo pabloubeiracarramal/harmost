@@ -21,6 +21,7 @@ message HubMessage {
     Ping                    ping                 = 4;
     WatchContainersRequest  watch_containers     = 5;
     UnwatchContainersRequest unwatch_containers  = 6;
+    ContainerActionRequest  container_action     = 7;
   }
 }
 
@@ -50,6 +51,21 @@ message WatchContainersRequest {}
 // Sent when the last front client watching this agent's containers goes away.
 message UnwatchContainersRequest {}
 
+enum ContainerAction {
+  CONTAINER_ACTION_UNSPECIFIED = 0;
+  CONTAINER_ACTION_START       = 1;
+  CONTAINER_ACTION_STOP        = 2;
+  CONTAINER_ACTION_RESTART     = 3;
+  CONTAINER_ACTION_REMOVE      = 4;
+}
+
+// A lifecycle action on a single container, applies to any container on the
+// host (not scoped to harmost-dispatched jobs).
+message ContainerActionRequest {
+  string          container_id = 1;
+  ContainerAction action       = 2;
+}
+
 // ─── Agent → Hub ─────────────────────────────────────────────────────────────
 
 message AgentMessage {
@@ -60,7 +76,17 @@ message AgentMessage {
     Heartbeat        heartbeat     = 4;
     Pong             pong          = 5;
     ContainerListUpdate container_list = 6;
+    ContainerActionResult container_action_result = 7;
   }
+}
+
+// Result of a ContainerActionRequest. Sent once, in addition to (not instead
+// of) the next ContainerListUpdate reflecting the outcome.
+message ContainerActionResult {
+  string          container_id = 1;
+  ContainerAction action       = 2;
+  bool            success      = 3;
+  string          error        = 4;
 }
 
 // First message sent by the agent after the stream is opened.
@@ -119,10 +145,36 @@ message ContainerInfo {
   string                     state      = 4;
   string                     status     = 5;
   google.protobuf.Timestamp started_at = 6;
+  repeated ContainerPort  ports   = 7;
+  repeated ContainerMount volumes = 8;
+  // Unset for non-running containers.
+  ContainerStats          stats   = 9;
+}
+
+message ContainerPort {
+  string host_ip      = 1;
+  uint32 private_port = 2;
+  uint32 public_port  = 3;
+  string type         = 4;
+}
+
+message ContainerMount {
+  string type        = 1;
+  string name        = 2;
+  string source       = 3;
+  string destination  = 4;
+  bool   read_only    = 5;
+}
+
+message ContainerStats {
+  float cpu_usage_percent  = 1;
+  int64 memory_usage_bytes = 2;
+  int64 memory_limit_bytes = 3;
 }
 
 // Sent on a fixed interval (independent of Heartbeat) while a
-// WatchContainersRequest is active. Running containers only.
+// WatchContainersRequest is active. Every container on the host, any state —
+// running-only filtering, if wanted, is a front-end concern.
 message ContainerListUpdate {
   repeated ContainerInfo containers = 1;
 }

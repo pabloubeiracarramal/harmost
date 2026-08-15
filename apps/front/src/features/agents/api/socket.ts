@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWsSubscribe } from '@/shared/ws/useWsSubscribe';
 import type { HubEvent } from '@/shared/ws/wsClient';
 import { agentKeys } from './keys';
-import type { Agent, ContainerInfo } from './types';
+import type { Agent, ContainerInfo, ContainerActionPayload } from './types';
 
 /** Applies agent.connected/disconnected/heartbeat events to the agents list cache. */
 export function useAgentsListSocket() {
@@ -48,5 +48,12 @@ export function useAgentDetailSocket(id: string) {
 export function useAgentContainersSocket(id: string, onContainers: (containers: ContainerInfo[]) => void) {
   useWsSubscribe((e: HubEvent) => {
     if (e.type === 'agent.containers' && e.agent_id === id) onContainers(e.payload.containers);
+  });
+}
+
+/** Forwards the outcome of a start/stop/restart/remove request for a single agent's containers. */
+export function useAgentContainerActionsSocket(id: string, onResult: (result: ContainerActionPayload) => void) {
+  useWsSubscribe((e: HubEvent) => {
+    if (e.type === 'agent.container_action' && e.agent_id === id) onResult(e.payload);
   });
 }

@@ -279,6 +279,73 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalError' }
 
+  # Any container on the host, not scoped to harmost-dispatched jobs — see
+  # ADR-equivalent discussion in issue #44. Fire-and-forget: the response is
+  # just "dispatched to the agent", the real outcome arrives over WS as
+  # `agent.container_action`, same split as job dispatch/status.
+  /api/v1/agents/{id}/containers/{containerId}/start:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+      - $ref: '#/components/parameters/ContainerID'
+    post:
+      tags: [agents]
+      summary: Start a container
+      operationId: startContainer
+      responses:
+        '202': { description: Dispatched to the agent. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AgentNotConnected' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/agents/{id}/containers/{containerId}/stop:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+      - $ref: '#/components/parameters/ContainerID'
+    post:
+      tags: [agents]
+      summary: Stop a container
+      operationId: stopContainer
+      responses:
+        '202': { description: Dispatched to the agent. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AgentNotConnected' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/agents/{id}/containers/{containerId}/restart:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+      - $ref: '#/components/parameters/ContainerID'
+    post:
+      tags: [agents]
+      summary: Restart a container
+      operationId: restartContainer
+      responses:
+        '202': { description: Dispatched to the agent. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AgentNotConnected' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /api/v1/agents/{id}/containers/{containerId}/remove:
+    parameters:
+      - $ref: '#/components/parameters/AgentID'
+      - $ref: '#/components/parameters/ContainerID'
+    post:
+      tags: [agents]
+      summary: Remove a container
+      description: |
+        Refused (surfaced via the `agent.container_action` result, not this
+        response) if the container is running — no force-remove.
+      operationId: removeContainer
+      responses:
+        '202': { description: Dispatched to the agent. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/AgentNotConnected' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
   # ─── agent tokens ──────────────────────────────────────────────────────────
 
   /api/v1/agent-tokens:
@@ -510,6 +577,12 @@ components:
       in: path
       required: true
       schema: { type: string, format: uuid }
+    ContainerID:
+      name: containerId
+      in: path
+      required: true
+      # Docker's own container ID (64-char hex), not one of harmost's UUIDs.
+      schema: { type: string }
 
   responses:
     Unauthorized:
@@ -540,6 +613,11 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
     InternalError:
       description: Unexpected server-side failure.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    AgentNotConnected:
+      description: The agent exists but has no live gRPC stream.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -862,14 +940,45 @@ components:
           type: array
           items: { $ref: '#/components/schemas/LogLine' }
 
+    ContainerPort:
+      type: object
+      description: |
+        `host_ip`/`public_port` are empty/0 when the port isn't published to
+        the host — Docker's own zero-value convention, not a tri-state.
+      required: [host_ip, private_port, public_port, type]
+      properties:
+        host_ip: { type: string }
+        private_port: { type: integer, format: int32 }
+        public_port: { type: integer, format: int32 }
+        type: { type: string, description: 'tcp, udp, or sctp' }
+
+    ContainerMount:
+      type: object
+      required: [type, name, source, destination, read_only]
+      properties:
+        type: { type: string, description: 'bind, volume, tmpfs, ...' }
+        name: { type: string, description: 'Empty for bind mounts (only volumes are named).' }
+        source: { type: string }
+        destination: { type: string }
+        read_only: { type: boolean }
+
+    ContainerStats:
+      type: object
+      description: A single live resource-usage sample. Absent on a `ContainerInfo` unless that container is running.
+      required: [cpu_usage_percent, memory_usage_bytes, memory_limit_bytes]
+      properties:
+        cpu_usage_percent: { type: number, format: float }
+        memory_usage_bytes: { type: integer, format: int64 }
+        memory_limit_bytes: { type: integer, format: int64 }
+
     ContainerInfo:
       type: object
       description: |
-        A single running container on an agent's host, as reported by the
-        Docker SDK. `started_at` is the container's creation time (the list
-        endpoint doesn't expose a separate start time, and running-only
-        filtering makes the two coincide for practical purposes).
-      required: [id, image, name, state, status, started_at]
+        A single container on an agent's host, as reported by the Docker SDK
+        — any state, not just running. `started_at` is the container's
+        creation time (the list endpoint doesn't expose a separate start
+        time). `stats` is only present while `state` is `running`.
+      required: [id, image, name, state, status, started_at, ports, volumes]
       properties:
         id: { type: string }
         image: { type: string }
@@ -877,15 +986,37 @@ components:
         state: { type: string }
         status: { type: string }
         started_at: { type: string, format: date-time }
+        ports:
+          type: array
+          items: { $ref: '#/components/schemas/ContainerPort' }
+        volumes:
+          type: array
+          items: { $ref: '#/components/schemas/ContainerMount' }
+        stats: { $ref: '#/components/schemas/ContainerStats' }
 
     ContainersPayload:
       type: object
-      description: Snapshot of every running container on the agent's host.
+      description: Snapshot of every container on the agent's host, any state.
       required: [containers]
       properties:
         containers:
           type: array
           items: { $ref: '#/components/schemas/ContainerInfo' }
+
+    ContainerActionPayload:
+      type: object
+      description: Result of a start/stop/restart/remove request on a single container.
+      required: [container_id, action, success]
+      properties:
+        container_id: { type: string }
+        action:
+          type: string
+          enum: [start, stop, restart, remove]
+        success: { type: boolean }
+        error:
+          type: string
+          description: Set when `success` is false.
+          x-go-type-skip-optional-pointer: true
 
     AgentEvent:
       type: object
@@ -947,6 +1078,22 @@ components:
         at: { type: string, format: date-time }
         payload: { $ref: '#/components/schemas/ContainersPayload' }
 
+    ContainerActionEvent:
+      type: object
+      description: |
+        Reports the outcome of a start/stop/restart/remove request. Sent
+        once, in addition to (not instead of) the next `agent.containers`
+        push reflecting the outcome. No `job_id` — containers here aren't
+        necessarily harmost-dispatched.
+      required: [type, agent_id, at, payload]
+      properties:
+        type:
+          type: string
+          enum: [agent.container_action]
+        agent_id: { type: string, format: uuid }
+        at: { type: string, format: date-time }
+        payload: { $ref: '#/components/schemas/ContainerActionPayload' }
+
     HubEvent:
       description: A single frame on the `/ws` stream.
       oneOf:
@@ -954,3 +1101,4 @@ components:
         - $ref: '#/components/schemas/JobStatusEvent'
         - $ref: '#/components/schemas/JobLogEvent'
         - $ref: '#/components/schemas/ContainersEvent'
+        - $ref: '#/components/schemas/ContainerActionEvent'

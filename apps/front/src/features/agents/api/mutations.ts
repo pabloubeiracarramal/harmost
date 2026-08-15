@@ -15,3 +15,19 @@ export function watchAgentContainers(agentId: string) {
 export function unwatchAgentContainers(agentId: string) {
   return api.post(`/api/v1/agents/${agentId}/containers/unwatch`);
 }
+
+export function startContainer(agentId: string, containerId: string) {
+  return api.post(`/api/v1/agents/${agentId}/containers/${containerId}/start`);
+}
+
+export function stopContainer(agentId: string, containerId: string) {
+  return api.post(`/api/v1/agents/${agentId}/containers/${containerId}/stop`);
+}
+
+export function restartContainer(agentId: string, containerId: string) {
+  return api.post(`/api/v1/agents/${agentId}/containers/${containerId}/restart`);
+}
+
+export function removeContainer(agentId: string, containerId: string) {
+  return api.post(`/api/v1/agents/${agentId}/containers/${containerId}/remove`);
+}
