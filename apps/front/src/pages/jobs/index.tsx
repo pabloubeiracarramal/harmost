@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
-import { AppShell } from '@/app/AppShell';
 import { useAgents } from '@/features/agents';
 import { useJobs, useJobsListSocket, JobStateBadge } from '@/features/jobs';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function JobsPage() {
   const { data: jobs = [], isLoading } = useJobs();
@@ -14,17 +14,17 @@ export function JobsPage() {
   };
 
   return (
-    <AppShell>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Jobs</h2>
+    <PageContainer
+      title="Jobs"
+      actions={
         <Link
           to="/jobs/new"
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
         >
           New job
         </Link>
-      </div>
-
+      }
+    >
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : jobs.length === 0 ? (
@@ -74,6 +74,6 @@ export function JobsPage() {
           </table>
         </div>
       )}
-    </AppShell>
+    </PageContainer>
   );
 }

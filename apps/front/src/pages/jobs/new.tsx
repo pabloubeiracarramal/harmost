@@ -1,8 +1,8 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import { AppShell } from '@/app/AppShell';
 import { useAgents } from '@/features/agents';
 import { useDispatchJob, Field, Input, type JobSpec } from '@/features/jobs';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 /** Splits a shell-ish input on whitespace; empty input → undefined. */
 function splitWords(s: string): string[] | undefined {
@@ -71,15 +71,14 @@ export function NewJobPage() {
   const error = formError || (dispatch.error as Error | null)?.message;
 
   return (
-    <AppShell>
+    <PageContainer title="New job">
       <div className="mx-auto max-w-xl">
-        <div className="mb-6 flex items-center gap-4">
-          <Link to="/jobs" className="text-sm text-neutral-400 hover:text-white transition">
-            ← Jobs
-          </Link>
-          <span className="text-neutral-700">/</span>
-          <h2 className="text-sm font-medium">New job</h2>
-        </div>
+        <Link
+          to="/jobs"
+          className="mb-6 inline-block text-sm text-neutral-400 hover:text-white transition"
+        >
+          ← Jobs
+        </Link>
 
         <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
           <Field label="Agent" required>
@@ -137,6 +136,6 @@ export function NewJobPage() {
           </button>
         </form>
       </div>
-    </AppShell>
+    </PageContainer>
   );
 }

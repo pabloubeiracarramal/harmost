@@ -1,20 +1,16 @@
+import { AuthLayout } from '@/shared/components/layout/auth-layout/AuthLayout';
+
 export function LoginPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border border-neutral-800 bg-neutral-900 p-8">
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold text-white">Harmost</h1>
-          <p className="text-sm text-neutral-400">Sign in to your account</p>
-        </div>
-        <a
-          href="/auth/github"
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100"
-        >
-          <GitHubIcon />
-          Continue with GitHub
-        </a>
-      </div>
-    </div>
+    <AuthLayout title="Harmost" description="Sign in to your account">
+      <a
+        href="/auth/github"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-neutral-100"
+      >
+        <GitHubIcon />
+        Continue with GitHub
+      </a>
+    </AuthLayout>
   );
 }
 

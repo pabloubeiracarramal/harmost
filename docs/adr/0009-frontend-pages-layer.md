@@ -27,6 +27,8 @@ Two things needed fixing: the route file and its feature's "full page" component
 
 `AppShell` still stays in `app/`, not `shared/components/layout/`. `shared/` cannot import `features/`, and `AppShell` needs `useMe()` (a `features/auth` hook) to show the signed-in user and handle logout; making it presentational would push that call into every page that renders it. `app/` is allowed to import `features/`, so `AppShell` calling `useMe()` directly remains the one intentional exception, made once, in one file — this reasoning is unchanged from the earlier draft of this ADR.
 
+> **Superseded 2026-08-17:** [ADR 0011](./0011-authenticated-shell-in-routes.md) replaces `AppShell` with a TanStack Router pathless layout route (`routes/_authenticated.tsx`) that now owns the `useMe()` call directly, and moves the presentational shell (`AppLayout`, `SidebarContainer`) into `shared/components/layout/`. The routing/pages split described below is otherwise unchanged.
+
 ## 4. Consequences
 
 **Positive:**
@@ -48,5 +50,5 @@ Two things needed fixing: the route file and its feature's "full page" component
 * **MUST NOT:** Import `createFileRoute`, `Route`, or call `Route.useParams()` anywhere under `src/pages/`. Pages take route params as plain props. `Link`/`useNavigate` are fine in `pages/` — those are navigation, not route definition.
 * **MUST:** For a dynamic segment, keep the route file's `RouteComponent` wrapper pattern: `const { id } = Route.useParams(); return <XxxPage id={id} />;`. Don't move that extraction into the page.
 * **MUST:** A page may call feature hooks (`useAgents()`, `useJobsListSocket()`, etc.) and render feature components — that's composition. It must NOT define its own `useQuery`/`useMutation`/WS subscription inline; that belongs in the owning feature's `api/`.
-* **MUST NOT:** Move `AppShell` into `shared/components/layout/` without first resolving how it gets `useMe()`/session data without either (a) `shared/` importing `features/` or (b) every page duplicating that fetch.
+* **MUST NOT:** Move `AppShell` into `shared/components/layout/` without first resolving how it gets `useMe()`/session data without either (a) `shared/` importing `features/` or (b) every page duplicating that fetch. _(Superseded by [ADR 0011](./0011-authenticated-shell-in-routes.md) — resolved via a pathless layout route in `routes/`.)_
 * **REFERENCE:** See `apps/front/CLAUDE.md` for the current directory layout and file-by-file conventions, and [ADR 0008](./0008-frontend-feature-based-architecture.md) for the feature/shared boundary rules this ADR doesn't change.
