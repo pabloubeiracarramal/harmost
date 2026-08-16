@@ -4,6 +4,8 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -42,18 +44,57 @@ func (d *Docker) ListAllContainers(ctx context.Context) ([]container.Summary, er
 	return res.Items, nil
 }
 
-// ListRunningContainers is ListAllContainers filtered to State == "running",
-// for the agent detail page's live containers view.
-func (d *Docker) ListRunningContainers(ctx context.Context) ([]container.Summary, error) {
-	all, err := d.ListAllContainers(ctx)
+func (d *Docker) StartContainer(ctx context.Context, id string) error {
+	_, err := d.cli.ContainerStart(ctx, id, client.ContainerStartOptions{})
+	return err
+}
+
+func (d *Docker) StopContainer(ctx context.Context, id string) error {
+	_, err := d.cli.ContainerStop(ctx, id, client.ContainerStopOptions{})
+	return err
+}
+
+func (d *Docker) RestartContainer(ctx context.Context, id string) error {
+	_, err := d.cli.ContainerRestart(ctx, id, client.ContainerRestartOptions{})
+	return err
+}
+
+// RemoveContainer does not force-remove: a running container is refused with
+// Docker's own error rather than silently killed. The front only offers
+// Remove once a container isn't running.
+func (d *Docker) RemoveContainer(ctx context.Context, id string) error {
+	_, err := d.cli.ContainerRemove(ctx, id, client.ContainerRemoveOptions{})
+	return err
+}
+
+// ContainerStats returns a single live resource-usage sample for a running
+// container. cpuPercent uses Docker's standard delta formula, which needs a
+// previous sample — IncludePreviousSample makes the daemon collect two ~1s
+// apart before responding, so this call takes slightly over a second.
+func (d *Docker) ContainerStats(ctx context.Context, id string) (cpuPercent float64, memUsageBytes, memLimitBytes int64, err error) {
+	res, err := d.cli.ContainerStats(ctx, id, client.ContainerStatsOptions{IncludePreviousSample: true})
 	if err != nil {
-		return nil, err
+		return 0, 0, 0, err
 	}
-	running := make([]container.Summary, 0, len(all))
-	for _, c := range all {
-		if c.State == container.StateRunning {
-			running = append(running, c)
+	defer res.Body.Close()
+
+	var stats container.StatsResponse
+	if err := json.NewDecoder(res.Body).Decode(&stats); err != nil {
+		return 0, 0, 0, fmt.Errorf("decode stats: %w", err)
+	}
+
+	cpuDelta := float64(stats.CPUStats.CPUUsage.TotalUsage) - float64(stats.PreCPUStats.CPUUsage.TotalUsage)
+	systemDelta := float64(stats.CPUStats.SystemUsage) - float64(stats.PreCPUStats.SystemUsage)
+	if systemDelta > 0 && cpuDelta > 0 {
+		onlineCPUs := float64(stats.CPUStats.OnlineCPUs)
+		if onlineCPUs == 0 {
+			onlineCPUs = float64(len(stats.CPUStats.CPUUsage.PercpuUsage))
 		}
+		if onlineCPUs == 0 {
+			onlineCPUs = 1
+		}
+		cpuPercent = (cpuDelta / systemDelta) * onlineCPUs * 100
 	}
-	return running, nil
+
+	return cpuPercent, int64(stats.MemoryStats.Usage), int64(stats.MemoryStats.Limit), nil
 }

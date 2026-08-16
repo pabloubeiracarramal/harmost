@@ -10,12 +10,13 @@ import (
 type EventType string
 
 const (
-	AgentConnected    EventType = "agent.connected"
-	AgentDisconnected EventType = "agent.disconnected"
-	AgentHeartbeat    EventType = "agent.heartbeat"
-	AgentContainers   EventType = "agent.containers"
-	JobStatus         EventType = "job.status"
-	JobLog            EventType = "job.log"
+	AgentConnected       EventType = "agent.connected"
+	AgentDisconnected    EventType = "agent.disconnected"
+	AgentHeartbeat       EventType = "agent.heartbeat"
+	AgentContainers      EventType = "agent.containers"
+	AgentContainerAction EventType = "agent.container_action"
+	JobStatus            EventType = "job.status"
+	JobLog               EventType = "job.log"
 )
 
 // Event is the envelope written to each /ws frame. It stays hand-written rather
@@ -36,13 +37,18 @@ type Event struct {
 // contract shared with the front. Re-exported so publishers depend on the bus's
 // vocabulary rather than importing the contract package directly.
 type (
-	JobStatusPayload  = api.JobStatusPayload
-	JobLogPayload     = api.JobLogPayload
-	LogLine           = api.LogLine
-	JobState          = api.JobState
-	LogStream         = api.LogStream
-	ContainersPayload = api.ContainersPayload
-	ContainerInfo     = api.ContainerInfo
+	JobStatusPayload       = api.JobStatusPayload
+	JobLogPayload          = api.JobLogPayload
+	LogLine                = api.LogLine
+	JobState               = api.JobState
+	LogStream              = api.LogStream
+	ContainersPayload      = api.ContainersPayload
+	ContainerInfo          = api.ContainerInfo
+	ContainerPort          = api.ContainerPort
+	ContainerMount         = api.ContainerMount
+	ContainerStats         = api.ContainerStats
+	ContainerActionPayload = api.ContainerActionPayload
+	ContainerActionKind    = api.ContainerActionPayloadAction
 )
 
 type Bus struct {

@@ -141,8 +141,29 @@ func (m *Manager) RunningJobIDs() []string {
 	return ids
 }
 
-// ListRunningContainers delegates to the underlying Docker client, for the
-// agent detail page's live containers view.
-func (m *Manager) ListRunningContainers(ctx context.Context) ([]container.Summary, error) {
-	return m.docker.ListRunningContainers(ctx)
+// ListContainers delegates to the underlying Docker client, for the agent
+// detail page's live containers view. Every state, not just running —
+// filtering/badging by state is a front-end concern.
+func (m *Manager) ListContainers(ctx context.Context) ([]container.Summary, error) {
+	return m.docker.ListAllContainers(ctx)
+}
+
+func (m *Manager) StartContainer(ctx context.Context, id string) error {
+	return m.docker.StartContainer(ctx, id)
+}
+
+func (m *Manager) StopContainer(ctx context.Context, id string) error {
+	return m.docker.StopContainer(ctx, id)
+}
+
+func (m *Manager) RestartContainer(ctx context.Context, id string) error {
+	return m.docker.RestartContainer(ctx, id)
+}
+
+func (m *Manager) RemoveContainer(ctx context.Context, id string) error {
+	return m.docker.RemoveContainer(ctx, id)
+}
+
+func (m *Manager) ContainerStats(ctx context.Context, id string) (cpuPercent float64, memUsageBytes, memLimitBytes int64, err error) {
+	return m.docker.ContainerStats(ctx, id)
 }

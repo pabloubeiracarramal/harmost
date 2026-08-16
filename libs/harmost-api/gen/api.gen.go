@@ -29,6 +29,30 @@ func (e AgentStatus) Valid() bool {
 	}
 }
 
+// Defines values for ContainerActionPayloadAction.
+const (
+	Remove  ContainerActionPayloadAction = "remove"
+	Restart ContainerActionPayloadAction = "restart"
+	Start   ContainerActionPayloadAction = "start"
+	Stop    ContainerActionPayloadAction = "stop"
+)
+
+// Valid indicates whether the value is a known member of the ContainerActionPayloadAction enum.
+func (e ContainerActionPayloadAction) Valid() bool {
+	switch e {
+	case Remove:
+		return true
+	case Restart:
+		return true
+	case Start:
+		return true
+	case Stop:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeviceTokenResponseTokenType.
 const (
 	TokenTypeBearer DeviceTokenResponseTokenType = "Bearer"
@@ -166,20 +190,69 @@ type AgentToken struct {
 	Name       string     `json:"name"`
 }
 
-// ContainerInfo A single running container on an agent's host, as reported by the
-// Docker SDK. `started_at` is the container's creation time (the list
-// endpoint doesn't expose a separate start time, and running-only
-// filtering makes the two coincide for practical purposes).
-type ContainerInfo struct {
-	ID        string    `json:"id"`
-	Image     string    `json:"image"`
-	Name      string    `json:"name"`
-	StartedAt time.Time `json:"started_at"`
-	State     string    `json:"state"`
-	Status    string    `json:"status"`
+// ContainerActionPayload Result of a start/stop/restart/remove request on a single container.
+type ContainerActionPayload struct {
+	Action      ContainerActionPayloadAction `json:"action"`
+	ContainerID string                       `json:"container_id"`
+
+	// Error Set when `success` is false.
+	Error   string `json:"error,omitempty"`
+	Success bool   `json:"success"`
 }
 
-// ContainersPayload Snapshot of every running container on the agent's host.
+// ContainerActionPayloadAction defines model for ContainerActionPayload.Action.
+type ContainerActionPayloadAction string
+
+// ContainerInfo A single container on an agent's host, as reported by the Docker SDK
+// — any state, not just running. `started_at` is the container's
+// creation time (the list endpoint doesn't expose a separate start
+// time). `stats` is only present while `state` is `running`.
+type ContainerInfo struct {
+	ID        string          `json:"id"`
+	Image     string          `json:"image"`
+	Name      string          `json:"name"`
+	Ports     []ContainerPort `json:"ports"`
+	StartedAt time.Time       `json:"started_at"`
+	State     string          `json:"state"`
+
+	// Stats A single live resource-usage sample. Absent on a `ContainerInfo` unless that container is running.
+	Stats   *ContainerStats  `json:"stats,omitempty"`
+	Status  string           `json:"status"`
+	Volumes []ContainerMount `json:"volumes"`
+}
+
+// ContainerMount defines model for ContainerMount.
+type ContainerMount struct {
+	Destination string `json:"destination"`
+
+	// Name Empty for bind mounts (only volumes are named).
+	Name     string `json:"name"`
+	ReadOnly bool   `json:"read_only"`
+	Source   string `json:"source"`
+
+	// Type bind, volume, tmpfs, ...
+	Type string `json:"type"`
+}
+
+// ContainerPort `host_ip`/`public_port` are empty/0 when the port isn't published to
+// the host — Docker's own zero-value convention, not a tri-state.
+type ContainerPort struct {
+	HostIP      string `json:"host_ip"`
+	PrivatePort int32  `json:"private_port"`
+	PublicPort  int32  `json:"public_port"`
+
+	// Type tcp, udp, or sctp
+	Type string `json:"type"`
+}
+
+// ContainerStats A single live resource-usage sample. Absent on a `ContainerInfo` unless that container is running.
+type ContainerStats struct {
+	CPUUsagePercent  float32 `json:"cpu_usage_percent"`
+	MemoryLimitBytes int64   `json:"memory_limit_bytes"`
+	MemoryUsageBytes int64   `json:"memory_usage_bytes"`
+}
+
+// ContainersPayload Snapshot of every container on the agent's host, any state.
 type ContainersPayload struct {
 	Containers []ContainerInfo `json:"containers"`
 }
@@ -361,11 +434,17 @@ type VolumeMount struct {
 // AgentID defines model for AgentID.
 type AgentID = string
 
+// ContainerID defines model for ContainerID.
+type ContainerID = string
+
 // JobID defines model for JobID.
 type JobID = string
 
 // TokenID defines model for TokenID.
 type TokenID = string
+
+// AgentNotConnected The single error shape used by every non-2xx JSON response.
+type AgentNotConnected = Error
 
 // BadRequest The single error shape used by every non-2xx JSON response.
 type BadRequest = Error

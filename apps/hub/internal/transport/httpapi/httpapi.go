@@ -22,6 +22,7 @@ type Dispatcher interface {
 	Connected(agentID string) bool
 	WatchContainers(ctx context.Context, agentID string) error
 	UnwatchContainers(ctx context.Context, agentID string) error
+	ContainerAction(ctx context.Context, agentID, containerID, action string) error
 }
 
 type Server struct {
@@ -75,6 +76,10 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/api/v1/agents/{id}", s.getAgent)
 		r.Post("/api/v1/agents/{id}/containers/watch", s.watchAgentContainers)
 		r.Post("/api/v1/agents/{id}/containers/unwatch", s.unwatchAgentContainers)
+		r.Post("/api/v1/agents/{id}/containers/{containerId}/start", s.startContainer)
+		r.Post("/api/v1/agents/{id}/containers/{containerId}/stop", s.stopContainer)
+		r.Post("/api/v1/agents/{id}/containers/{containerId}/restart", s.restartContainer)
+		r.Post("/api/v1/agents/{id}/containers/{containerId}/remove", s.removeContainer)
 
 		r.Get("/api/v1/agent-tokens", s.listAgentTokens)
 		r.Post("/api/v1/agent-tokens/{id}/revoke", s.revokeAgentToken)

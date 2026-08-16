@@ -22,6 +22,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ContainerAction int32
+
+const (
+	ContainerAction_CONTAINER_ACTION_UNSPECIFIED ContainerAction = 0
+	ContainerAction_CONTAINER_ACTION_START       ContainerAction = 1
+	ContainerAction_CONTAINER_ACTION_STOP        ContainerAction = 2
+	ContainerAction_CONTAINER_ACTION_RESTART     ContainerAction = 3
+	ContainerAction_CONTAINER_ACTION_REMOVE      ContainerAction = 4
+)
+
+// Enum value maps for ContainerAction.
+var (
+	ContainerAction_name = map[int32]string{
+		0: "CONTAINER_ACTION_UNSPECIFIED",
+		1: "CONTAINER_ACTION_START",
+		2: "CONTAINER_ACTION_STOP",
+		3: "CONTAINER_ACTION_RESTART",
+		4: "CONTAINER_ACTION_REMOVE",
+	}
+	ContainerAction_value = map[string]int32{
+		"CONTAINER_ACTION_UNSPECIFIED": 0,
+		"CONTAINER_ACTION_START":       1,
+		"CONTAINER_ACTION_STOP":        2,
+		"CONTAINER_ACTION_RESTART":     3,
+		"CONTAINER_ACTION_REMOVE":      4,
+	}
+)
+
+func (x ContainerAction) Enum() *ContainerAction {
+	p := new(ContainerAction)
+	*p = x
+	return p
+}
+
+func (x ContainerAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ContainerAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_harmost_v1_agent_proto_enumTypes[0].Descriptor()
+}
+
+func (ContainerAction) Type() protoreflect.EnumType {
+	return &file_harmost_v1_agent_proto_enumTypes[0]
+}
+
+func (x ContainerAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ContainerAction.Descriptor instead.
+func (ContainerAction) EnumDescriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{0}
+}
+
 type JobState int32
 
 const (
@@ -79,11 +134,11 @@ func (x JobState) String() string {
 }
 
 func (JobState) Descriptor() protoreflect.EnumDescriptor {
-	return file_harmost_v1_agent_proto_enumTypes[0].Descriptor()
+	return file_harmost_v1_agent_proto_enumTypes[1].Descriptor()
 }
 
 func (JobState) Type() protoreflect.EnumType {
-	return &file_harmost_v1_agent_proto_enumTypes[0]
+	return &file_harmost_v1_agent_proto_enumTypes[1]
 }
 
 func (x JobState) Number() protoreflect.EnumNumber {
@@ -92,7 +147,7 @@ func (x JobState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use JobState.Descriptor instead.
 func (JobState) EnumDescriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{0}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{1}
 }
 
 type LogStream int32
@@ -128,11 +183,11 @@ func (x LogStream) String() string {
 }
 
 func (LogStream) Descriptor() protoreflect.EnumDescriptor {
-	return file_harmost_v1_agent_proto_enumTypes[1].Descriptor()
+	return file_harmost_v1_agent_proto_enumTypes[2].Descriptor()
 }
 
 func (LogStream) Type() protoreflect.EnumType {
-	return &file_harmost_v1_agent_proto_enumTypes[1]
+	return &file_harmost_v1_agent_proto_enumTypes[2]
 }
 
 func (x LogStream) Number() protoreflect.EnumNumber {
@@ -141,7 +196,7 @@ func (x LogStream) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use LogStream.Descriptor instead.
 func (LogStream) EnumDescriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{1}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{2}
 }
 
 type PullPolicy int32
@@ -180,11 +235,11 @@ func (x PullPolicy) String() string {
 }
 
 func (PullPolicy) Descriptor() protoreflect.EnumDescriptor {
-	return file_harmost_v1_agent_proto_enumTypes[2].Descriptor()
+	return file_harmost_v1_agent_proto_enumTypes[3].Descriptor()
 }
 
 func (PullPolicy) Type() protoreflect.EnumType {
-	return &file_harmost_v1_agent_proto_enumTypes[2]
+	return &file_harmost_v1_agent_proto_enumTypes[3]
 }
 
 func (x PullPolicy) Number() protoreflect.EnumNumber {
@@ -193,7 +248,7 @@ func (x PullPolicy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PullPolicy.Descriptor instead.
 func (PullPolicy) EnumDescriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{2}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{3}
 }
 
 type HubMessage struct {
@@ -206,6 +261,7 @@ type HubMessage struct {
 	//	*HubMessage_Ping
 	//	*HubMessage_WatchContainers
 	//	*HubMessage_UnwatchContainers
+	//	*HubMessage_ContainerAction
 	Payload       isHubMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -302,6 +358,15 @@ func (x *HubMessage) GetUnwatchContainers() *UnwatchContainersRequest {
 	return nil
 }
 
+func (x *HubMessage) GetContainerAction() *ContainerActionRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*HubMessage_ContainerAction); ok {
+			return x.ContainerAction
+		}
+	}
+	return nil
+}
+
 type isHubMessage_Payload interface {
 	isHubMessage_Payload()
 }
@@ -330,6 +395,10 @@ type HubMessage_UnwatchContainers struct {
 	UnwatchContainers *UnwatchContainersRequest `protobuf:"bytes,6,opt,name=unwatch_containers,json=unwatchContainers,proto3,oneof"`
 }
 
+type HubMessage_ContainerAction struct {
+	ContainerAction *ContainerActionRequest `protobuf:"bytes,7,opt,name=container_action,json=containerAction,proto3,oneof"`
+}
+
 func (*HubMessage_DispatchJob) isHubMessage_Payload() {}
 
 func (*HubMessage_CancelJob) isHubMessage_Payload() {}
@@ -341,6 +410,8 @@ func (*HubMessage_Ping) isHubMessage_Payload() {}
 func (*HubMessage_WatchContainers) isHubMessage_Payload() {}
 
 func (*HubMessage_UnwatchContainers) isHubMessage_Payload() {}
+
+func (*HubMessage_ContainerAction) isHubMessage_Payload() {}
 
 type DispatchJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -603,6 +674,60 @@ func (*UnwatchContainersRequest) Descriptor() ([]byte, []int) {
 	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{6}
 }
 
+// A lifecycle action on a single container, applies to any container on the
+// host (not scoped to harmost-dispatched jobs).
+type ContainerActionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Action        ContainerAction        `protobuf:"varint,2,opt,name=action,proto3,enum=harmost.v1.ContainerAction" json:"action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerActionRequest) Reset() {
+	*x = ContainerActionRequest{}
+	mi := &file_harmost_v1_agent_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerActionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerActionRequest) ProtoMessage() {}
+
+func (x *ContainerActionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harmost_v1_agent_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerActionRequest.ProtoReflect.Descriptor instead.
+func (*ContainerActionRequest) Descriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ContainerActionRequest) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *ContainerActionRequest) GetAction() ContainerAction {
+	if x != nil {
+		return x.Action
+	}
+	return ContainerAction_CONTAINER_ACTION_UNSPECIFIED
+}
+
 type AgentMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
@@ -613,6 +738,7 @@ type AgentMessage struct {
 	//	*AgentMessage_Heartbeat
 	//	*AgentMessage_Pong
 	//	*AgentMessage_ContainerList
+	//	*AgentMessage_ContainerActionResult
 	Payload       isAgentMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -620,7 +746,7 @@ type AgentMessage struct {
 
 func (x *AgentMessage) Reset() {
 	*x = AgentMessage{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[7]
+	mi := &file_harmost_v1_agent_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -632,7 +758,7 @@ func (x *AgentMessage) String() string {
 func (*AgentMessage) ProtoMessage() {}
 
 func (x *AgentMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[7]
+	mi := &file_harmost_v1_agent_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -645,7 +771,7 @@ func (x *AgentMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMessage.ProtoReflect.Descriptor instead.
 func (*AgentMessage) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{7}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AgentMessage) GetPayload() isAgentMessage_Payload {
@@ -709,6 +835,15 @@ func (x *AgentMessage) GetContainerList() *ContainerListUpdate {
 	return nil
 }
 
+func (x *AgentMessage) GetContainerActionResult() *ContainerActionResult {
+	if x != nil {
+		if x, ok := x.Payload.(*AgentMessage_ContainerActionResult); ok {
+			return x.ContainerActionResult
+		}
+	}
+	return nil
+}
+
 type isAgentMessage_Payload interface {
 	isAgentMessage_Payload()
 }
@@ -737,6 +872,10 @@ type AgentMessage_ContainerList struct {
 	ContainerList *ContainerListUpdate `protobuf:"bytes,6,opt,name=container_list,json=containerList,proto3,oneof"`
 }
 
+type AgentMessage_ContainerActionResult struct {
+	ContainerActionResult *ContainerActionResult `protobuf:"bytes,7,opt,name=container_action_result,json=containerActionResult,proto3,oneof"`
+}
+
 func (*AgentMessage_Hello) isAgentMessage_Payload() {}
 
 func (*AgentMessage_StatusUpdate) isAgentMessage_Payload() {}
@@ -748,6 +887,78 @@ func (*AgentMessage_Heartbeat) isAgentMessage_Payload() {}
 func (*AgentMessage_Pong) isAgentMessage_Payload() {}
 
 func (*AgentMessage_ContainerList) isAgentMessage_Payload() {}
+
+func (*AgentMessage_ContainerActionResult) isAgentMessage_Payload() {}
+
+// Result of a ContainerActionRequest. Sent once, in addition to (not instead
+// of) the next ContainerListUpdate reflecting the outcome.
+type ContainerActionResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContainerId   string                 `protobuf:"bytes,1,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Action        ContainerAction        `protobuf:"varint,2,opt,name=action,proto3,enum=harmost.v1.ContainerAction" json:"action,omitempty"`
+	Success       bool                   `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerActionResult) Reset() {
+	*x = ContainerActionResult{}
+	mi := &file_harmost_v1_agent_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerActionResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerActionResult) ProtoMessage() {}
+
+func (x *ContainerActionResult) ProtoReflect() protoreflect.Message {
+	mi := &file_harmost_v1_agent_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerActionResult.ProtoReflect.Descriptor instead.
+func (*ContainerActionResult) Descriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ContainerActionResult) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *ContainerActionResult) GetAction() ContainerAction {
+	if x != nil {
+		return x.Action
+	}
+	return ContainerAction_CONTAINER_ACTION_UNSPECIFIED
+}
+
+func (x *ContainerActionResult) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *ContainerActionResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
 
 // First message sent by the agent after the stream is opened.
 type AgentHello struct {
@@ -765,7 +976,7 @@ type AgentHello struct {
 
 func (x *AgentHello) Reset() {
 	*x = AgentHello{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[8]
+	mi := &file_harmost_v1_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -777,7 +988,7 @@ func (x *AgentHello) String() string {
 func (*AgentHello) ProtoMessage() {}
 
 func (x *AgentHello) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[8]
+	mi := &file_harmost_v1_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -790,7 +1001,7 @@ func (x *AgentHello) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentHello.ProtoReflect.Descriptor instead.
 func (*AgentHello) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{8}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AgentHello) GetName() string {
@@ -843,7 +1054,7 @@ type JobStatusUpdate struct {
 
 func (x *JobStatusUpdate) Reset() {
 	*x = JobStatusUpdate{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[9]
+	mi := &file_harmost_v1_agent_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -855,7 +1066,7 @@ func (x *JobStatusUpdate) String() string {
 func (*JobStatusUpdate) ProtoMessage() {}
 
 func (x *JobStatusUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[9]
+	mi := &file_harmost_v1_agent_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -868,7 +1079,7 @@ func (x *JobStatusUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobStatusUpdate.ProtoReflect.Descriptor instead.
 func (*JobStatusUpdate) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{9}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *JobStatusUpdate) GetJobId() string {
@@ -919,7 +1130,7 @@ type LogChunk struct {
 
 func (x *LogChunk) Reset() {
 	*x = LogChunk{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[10]
+	mi := &file_harmost_v1_agent_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -931,7 +1142,7 @@ func (x *LogChunk) String() string {
 func (*LogChunk) ProtoMessage() {}
 
 func (x *LogChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[10]
+	mi := &file_harmost_v1_agent_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -944,7 +1155,7 @@ func (x *LogChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogChunk.ProtoReflect.Descriptor instead.
 func (*LogChunk) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{10}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *LogChunk) GetJobId() string {
@@ -993,7 +1204,7 @@ type Heartbeat struct {
 
 func (x *Heartbeat) Reset() {
 	*x = Heartbeat{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[11]
+	mi := &file_harmost_v1_agent_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1005,7 +1216,7 @@ func (x *Heartbeat) String() string {
 func (*Heartbeat) ProtoMessage() {}
 
 func (x *Heartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[11]
+	mi := &file_harmost_v1_agent_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1018,7 +1229,7 @@ func (x *Heartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
 func (*Heartbeat) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{11}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Heartbeat) GetTimestamp() *timestamppb.Timestamp {
@@ -1049,7 +1260,7 @@ type SystemMetrics struct {
 
 func (x *SystemMetrics) Reset() {
 	*x = SystemMetrics{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[12]
+	mi := &file_harmost_v1_agent_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1061,7 +1272,7 @@ func (x *SystemMetrics) String() string {
 func (*SystemMetrics) ProtoMessage() {}
 
 func (x *SystemMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[12]
+	mi := &file_harmost_v1_agent_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1074,7 +1285,7 @@ func (x *SystemMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemMetrics.ProtoReflect.Descriptor instead.
 func (*SystemMetrics) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{12}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SystemMetrics) GetCpuUsagePercent() float32 {
@@ -1129,7 +1340,7 @@ type Pong struct {
 
 func (x *Pong) Reset() {
 	*x = Pong{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[13]
+	mi := &file_harmost_v1_agent_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1141,7 +1352,7 @@ func (x *Pong) String() string {
 func (*Pong) ProtoMessage() {}
 
 func (x *Pong) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[13]
+	mi := &file_harmost_v1_agent_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1154,7 +1365,7 @@ func (x *Pong) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pong.ProtoReflect.Descriptor instead.
 func (*Pong) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{13}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Pong) GetPingSentAt() *timestamppb.Timestamp {
@@ -1172,20 +1383,24 @@ func (x *Pong) GetReceivedAt() *timestamppb.Timestamp {
 }
 
 type ContainerInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Image         string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Image     string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	Name      string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	State     string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	Status    string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	StartedAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	Ports     []*ContainerPort       `protobuf:"bytes,7,rep,name=ports,proto3" json:"ports,omitempty"`
+	Volumes   []*ContainerMount      `protobuf:"bytes,8,rep,name=volumes,proto3" json:"volumes,omitempty"`
+	// Unset for non-running containers.
+	Stats         *ContainerStats `protobuf:"bytes,9,opt,name=stats,proto3" json:"stats,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ContainerInfo) Reset() {
 	*x = ContainerInfo{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[14]
+	mi := &file_harmost_v1_agent_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1412,7 @@ func (x *ContainerInfo) String() string {
 func (*ContainerInfo) ProtoMessage() {}
 
 func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[14]
+	mi := &file_harmost_v1_agent_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1425,7 @@ func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerInfo.ProtoReflect.Descriptor instead.
 func (*ContainerInfo) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{14}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ContainerInfo) GetId() string {
@@ -1255,8 +1470,234 @@ func (x *ContainerInfo) GetStartedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ContainerInfo) GetPorts() []*ContainerPort {
+	if x != nil {
+		return x.Ports
+	}
+	return nil
+}
+
+func (x *ContainerInfo) GetVolumes() []*ContainerMount {
+	if x != nil {
+		return x.Volumes
+	}
+	return nil
+}
+
+func (x *ContainerInfo) GetStats() *ContainerStats {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+type ContainerPort struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HostIp        string                 `protobuf:"bytes,1,opt,name=host_ip,json=hostIp,proto3" json:"host_ip,omitempty"`
+	PrivatePort   uint32                 `protobuf:"varint,2,opt,name=private_port,json=privatePort,proto3" json:"private_port,omitempty"`
+	PublicPort    uint32                 `protobuf:"varint,3,opt,name=public_port,json=publicPort,proto3" json:"public_port,omitempty"`
+	Type          string                 `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerPort) Reset() {
+	*x = ContainerPort{}
+	mi := &file_harmost_v1_agent_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerPort) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerPort) ProtoMessage() {}
+
+func (x *ContainerPort) ProtoReflect() protoreflect.Message {
+	mi := &file_harmost_v1_agent_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerPort.ProtoReflect.Descriptor instead.
+func (*ContainerPort) Descriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ContainerPort) GetHostIp() string {
+	if x != nil {
+		return x.HostIp
+	}
+	return ""
+}
+
+func (x *ContainerPort) GetPrivatePort() uint32 {
+	if x != nil {
+		return x.PrivatePort
+	}
+	return 0
+}
+
+func (x *ContainerPort) GetPublicPort() uint32 {
+	if x != nil {
+		return x.PublicPort
+	}
+	return 0
+}
+
+func (x *ContainerPort) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+type ContainerMount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Source        string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	Destination   string                 `protobuf:"bytes,4,opt,name=destination,proto3" json:"destination,omitempty"`
+	ReadOnly      bool                   `protobuf:"varint,5,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ContainerMount) Reset() {
+	*x = ContainerMount{}
+	mi := &file_harmost_v1_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerMount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerMount) ProtoMessage() {}
+
+func (x *ContainerMount) ProtoReflect() protoreflect.Message {
+	mi := &file_harmost_v1_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerMount.ProtoReflect.Descriptor instead.
+func (*ContainerMount) Descriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ContainerMount) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *ContainerMount) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ContainerMount) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *ContainerMount) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *ContainerMount) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
+}
+
+type ContainerStats struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	CpuUsagePercent  float32                `protobuf:"fixed32,1,opt,name=cpu_usage_percent,json=cpuUsagePercent,proto3" json:"cpu_usage_percent,omitempty"`
+	MemoryUsageBytes int64                  `protobuf:"varint,2,opt,name=memory_usage_bytes,json=memoryUsageBytes,proto3" json:"memory_usage_bytes,omitempty"`
+	MemoryLimitBytes int64                  `protobuf:"varint,3,opt,name=memory_limit_bytes,json=memoryLimitBytes,proto3" json:"memory_limit_bytes,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ContainerStats) Reset() {
+	*x = ContainerStats{}
+	mi := &file_harmost_v1_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContainerStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContainerStats) ProtoMessage() {}
+
+func (x *ContainerStats) ProtoReflect() protoreflect.Message {
+	mi := &file_harmost_v1_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContainerStats.ProtoReflect.Descriptor instead.
+func (*ContainerStats) Descriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ContainerStats) GetCpuUsagePercent() float32 {
+	if x != nil {
+		return x.CpuUsagePercent
+	}
+	return 0
+}
+
+func (x *ContainerStats) GetMemoryUsageBytes() int64 {
+	if x != nil {
+		return x.MemoryUsageBytes
+	}
+	return 0
+}
+
+func (x *ContainerStats) GetMemoryLimitBytes() int64 {
+	if x != nil {
+		return x.MemoryLimitBytes
+	}
+	return 0
+}
+
 // Sent on a fixed interval (independent of Heartbeat) while a
-// WatchContainersRequest is active. Running containers only.
+// WatchContainersRequest is active. Every container on the host, any state —
+// running-only filtering, if wanted, is a front-end concern.
 type ContainerListUpdate struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Containers    []*ContainerInfo       `protobuf:"bytes,1,rep,name=containers,proto3" json:"containers,omitempty"`
@@ -1266,7 +1707,7 @@ type ContainerListUpdate struct {
 
 func (x *ContainerListUpdate) Reset() {
 	*x = ContainerListUpdate{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[15]
+	mi := &file_harmost_v1_agent_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1278,7 +1719,7 @@ func (x *ContainerListUpdate) String() string {
 func (*ContainerListUpdate) ProtoMessage() {}
 
 func (x *ContainerListUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[15]
+	mi := &file_harmost_v1_agent_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1291,7 +1732,7 @@ func (x *ContainerListUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerListUpdate.ProtoReflect.Descriptor instead.
 func (*ContainerListUpdate) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{15}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ContainerListUpdate) GetContainers() []*ContainerInfo {
@@ -1321,7 +1762,7 @@ type JobSpec struct {
 
 func (x *JobSpec) Reset() {
 	*x = JobSpec{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[16]
+	mi := &file_harmost_v1_agent_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1333,7 +1774,7 @@ func (x *JobSpec) String() string {
 func (*JobSpec) ProtoMessage() {}
 
 func (x *JobSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[16]
+	mi := &file_harmost_v1_agent_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1346,7 +1787,7 @@ func (x *JobSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobSpec.ProtoReflect.Descriptor instead.
 func (*JobSpec) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{16}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *JobSpec) GetImage() string {
@@ -1444,7 +1885,7 @@ type VolumeMount struct {
 
 func (x *VolumeMount) Reset() {
 	*x = VolumeMount{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[17]
+	mi := &file_harmost_v1_agent_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1456,7 +1897,7 @@ func (x *VolumeMount) String() string {
 func (*VolumeMount) ProtoMessage() {}
 
 func (x *VolumeMount) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[17]
+	mi := &file_harmost_v1_agent_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1469,7 +1910,7 @@ func (x *VolumeMount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VolumeMount.ProtoReflect.Descriptor instead.
 func (*VolumeMount) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{17}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *VolumeMount) GetHostPath() string {
@@ -1503,7 +1944,7 @@ type ResourceLimits struct {
 
 func (x *ResourceLimits) Reset() {
 	*x = ResourceLimits{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[18]
+	mi := &file_harmost_v1_agent_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1956,7 @@ func (x *ResourceLimits) String() string {
 func (*ResourceLimits) ProtoMessage() {}
 
 func (x *ResourceLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[18]
+	mi := &file_harmost_v1_agent_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +1969,7 @@ func (x *ResourceLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceLimits.ProtoReflect.Descriptor instead.
 func (*ResourceLimits) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{18}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ResourceLimits) GetMemoryBytes() int64 {
@@ -1550,7 +1991,7 @@ var File_harmost_v1_agent_proto protoreflect.FileDescriptor
 const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"\x16harmost/v1/agent.proto\x12\n" +
-	"harmost.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc5\x03\n" +
+	"harmost.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\x04\n" +
 	"\n" +
 	"HubMessage\x12C\n" +
 	"\fdispatch_job\x18\x01 \x01(\v2\x1e.harmost.v1.DispatchJobRequestH\x00R\vdispatchJob\x12=\n" +
@@ -1559,7 +2000,8 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\x16set_heartbeat_interval\x18\x03 \x01(\v2 .harmost.v1.SetHeartbeatIntervalH\x00R\x14setHeartbeatInterval\x12&\n" +
 	"\x04ping\x18\x04 \x01(\v2\x10.harmost.v1.PingH\x00R\x04ping\x12O\n" +
 	"\x10watch_containers\x18\x05 \x01(\v2\".harmost.v1.WatchContainersRequestH\x00R\x0fwatchContainers\x12U\n" +
-	"\x12unwatch_containers\x18\x06 \x01(\v2$.harmost.v1.UnwatchContainersRequestH\x00R\x11unwatchContainersB\t\n" +
+	"\x12unwatch_containers\x18\x06 \x01(\v2$.harmost.v1.UnwatchContainersRequestH\x00R\x11unwatchContainers\x12O\n" +
+	"\x10container_action\x18\a \x01(\v2\".harmost.v1.ContainerActionRequestH\x00R\x0fcontainerActionB\t\n" +
 	"\apayload\"T\n" +
 	"\x12DispatchJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12'\n" +
@@ -1571,15 +2013,24 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\x04Ping\x123\n" +
 	"\asent_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x06sentAt\"\x18\n" +
 	"\x16WatchContainersRequest\"\x1a\n" +
-	"\x18UnwatchContainersRequest\"\xeb\x02\n" +
+	"\x18UnwatchContainersRequest\"p\n" +
+	"\x16ContainerActionRequest\x12!\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x123\n" +
+	"\x06action\x18\x02 \x01(\x0e2\x1b.harmost.v1.ContainerActionR\x06action\"\xc8\x03\n" +
 	"\fAgentMessage\x12.\n" +
 	"\x05hello\x18\x01 \x01(\v2\x16.harmost.v1.AgentHelloH\x00R\x05hello\x12B\n" +
 	"\rstatus_update\x18\x02 \x01(\v2\x1b.harmost.v1.JobStatusUpdateH\x00R\fstatusUpdate\x123\n" +
 	"\tlog_chunk\x18\x03 \x01(\v2\x14.harmost.v1.LogChunkH\x00R\blogChunk\x125\n" +
 	"\theartbeat\x18\x04 \x01(\v2\x15.harmost.v1.HeartbeatH\x00R\theartbeat\x12&\n" +
 	"\x04pong\x18\x05 \x01(\v2\x10.harmost.v1.PongH\x00R\x04pong\x12H\n" +
-	"\x0econtainer_list\x18\x06 \x01(\v2\x1f.harmost.v1.ContainerListUpdateH\x00R\rcontainerListB\t\n" +
-	"\apayload\"\xa0\x01\n" +
+	"\x0econtainer_list\x18\x06 \x01(\v2\x1f.harmost.v1.ContainerListUpdateH\x00R\rcontainerList\x12[\n" +
+	"\x17container_action_result\x18\a \x01(\v2!.harmost.v1.ContainerActionResultH\x00R\x15containerActionResultB\t\n" +
+	"\apayload\"\x9f\x01\n" +
+	"\x15ContainerActionResult\x12!\n" +
+	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x123\n" +
+	"\x06action\x18\x02 \x01(\x0e2\x1b.harmost.v1.ContainerActionR\x06action\x12\x18\n" +
+	"\asuccess\x18\x03 \x01(\bR\asuccess\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\xa0\x01\n" +
 	"\n" +
 	"AgentHello\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
@@ -1615,7 +2066,7 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\fping_sent_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"pingSentAt\x12;\n" +
 	"\vreceived_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"receivedAt\"\xb2\x01\n" +
+	"receivedAt\"\xcb\x02\n" +
 	"\rContainerInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x12\n" +
@@ -1623,7 +2074,26 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\x05state\x18\x04 \x01(\tR\x05state\x12\x16\n" +
 	"\x06status\x18\x05 \x01(\tR\x06status\x129\n" +
 	"\n" +
-	"started_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\"P\n" +
+	"started_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12/\n" +
+	"\x05ports\x18\a \x03(\v2\x19.harmost.v1.ContainerPortR\x05ports\x124\n" +
+	"\avolumes\x18\b \x03(\v2\x1a.harmost.v1.ContainerMountR\avolumes\x120\n" +
+	"\x05stats\x18\t \x01(\v2\x1a.harmost.v1.ContainerStatsR\x05stats\"\x80\x01\n" +
+	"\rContainerPort\x12\x17\n" +
+	"\ahost_ip\x18\x01 \x01(\tR\x06hostIp\x12!\n" +
+	"\fprivate_port\x18\x02 \x01(\rR\vprivatePort\x12\x1f\n" +
+	"\vpublic_port\x18\x03 \x01(\rR\n" +
+	"publicPort\x12\x12\n" +
+	"\x04type\x18\x04 \x01(\tR\x04type\"\x8f\x01\n" +
+	"\x0eContainerMount\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\x12 \n" +
+	"\vdestination\x18\x04 \x01(\tR\vdestination\x12\x1b\n" +
+	"\tread_only\x18\x05 \x01(\bR\breadOnly\"\x98\x01\n" +
+	"\x0eContainerStats\x12*\n" +
+	"\x11cpu_usage_percent\x18\x01 \x01(\x02R\x0fcpuUsagePercent\x12,\n" +
+	"\x12memory_usage_bytes\x18\x02 \x01(\x03R\x10memoryUsageBytes\x12,\n" +
+	"\x12memory_limit_bytes\x18\x03 \x01(\x03R\x10memoryLimitBytes\"P\n" +
 	"\x13ContainerListUpdate\x129\n" +
 	"\n" +
 	"containers\x18\x01 \x03(\v2\x19.harmost.v1.ContainerInfoR\n" +
@@ -1658,7 +2128,13 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\tread_only\x18\x03 \x01(\bR\breadOnly\"P\n" +
 	"\x0eResourceLimits\x12!\n" +
 	"\fmemory_bytes\x18\x01 \x01(\x03R\vmemoryBytes\x12\x1b\n" +
-	"\tcpu_cores\x18\x02 \x01(\x02R\bcpuCores*\xae\x02\n" +
+	"\tcpu_cores\x18\x02 \x01(\x02R\bcpuCores*\xa5\x01\n" +
+	"\x0fContainerAction\x12 \n" +
+	"\x1cCONTAINER_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16CONTAINER_ACTION_START\x10\x01\x12\x19\n" +
+	"\x15CONTAINER_ACTION_STOP\x10\x02\x12\x1c\n" +
+	"\x18CONTAINER_ACTION_RESTART\x10\x03\x12\x1b\n" +
+	"\x17CONTAINER_ACTION_REMOVE\x10\x04*\xae\x02\n" +
 	"\bJobState\x12\x19\n" +
 	"\x15JOB_STATE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12JOB_STATE_ACCEPTED\x10\x01\x12\x1b\n" +
@@ -1701,72 +2177,85 @@ func file_harmost_v1_agent_proto_rawDescGZIP() []byte {
 	return file_harmost_v1_agent_proto_rawDescData
 }
 
-var file_harmost_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_harmost_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_harmost_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_harmost_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_harmost_v1_agent_proto_goTypes = []any{
-	(JobState)(0),                    // 0: harmost.v1.JobState
-	(LogStream)(0),                   // 1: harmost.v1.LogStream
-	(PullPolicy)(0),                  // 2: harmost.v1.PullPolicy
-	(*HubMessage)(nil),               // 3: harmost.v1.HubMessage
-	(*DispatchJobRequest)(nil),       // 4: harmost.v1.DispatchJobRequest
-	(*CancelJobRequest)(nil),         // 5: harmost.v1.CancelJobRequest
-	(*SetHeartbeatInterval)(nil),     // 6: harmost.v1.SetHeartbeatInterval
-	(*Ping)(nil),                     // 7: harmost.v1.Ping
-	(*WatchContainersRequest)(nil),   // 8: harmost.v1.WatchContainersRequest
-	(*UnwatchContainersRequest)(nil), // 9: harmost.v1.UnwatchContainersRequest
-	(*AgentMessage)(nil),             // 10: harmost.v1.AgentMessage
-	(*AgentHello)(nil),               // 11: harmost.v1.AgentHello
-	(*JobStatusUpdate)(nil),          // 12: harmost.v1.JobStatusUpdate
-	(*LogChunk)(nil),                 // 13: harmost.v1.LogChunk
-	(*Heartbeat)(nil),                // 14: harmost.v1.Heartbeat
-	(*SystemMetrics)(nil),            // 15: harmost.v1.SystemMetrics
-	(*Pong)(nil),                     // 16: harmost.v1.Pong
-	(*ContainerInfo)(nil),            // 17: harmost.v1.ContainerInfo
-	(*ContainerListUpdate)(nil),      // 18: harmost.v1.ContainerListUpdate
-	(*JobSpec)(nil),                  // 19: harmost.v1.JobSpec
-	(*VolumeMount)(nil),              // 20: harmost.v1.VolumeMount
-	(*ResourceLimits)(nil),           // 21: harmost.v1.ResourceLimits
-	nil,                              // 22: harmost.v1.JobSpec.EnvEntry
-	nil,                              // 23: harmost.v1.JobSpec.LabelsEntry
-	(*timestamppb.Timestamp)(nil),    // 24: google.protobuf.Timestamp
+	(ContainerAction)(0),             // 0: harmost.v1.ContainerAction
+	(JobState)(0),                    // 1: harmost.v1.JobState
+	(LogStream)(0),                   // 2: harmost.v1.LogStream
+	(PullPolicy)(0),                  // 3: harmost.v1.PullPolicy
+	(*HubMessage)(nil),               // 4: harmost.v1.HubMessage
+	(*DispatchJobRequest)(nil),       // 5: harmost.v1.DispatchJobRequest
+	(*CancelJobRequest)(nil),         // 6: harmost.v1.CancelJobRequest
+	(*SetHeartbeatInterval)(nil),     // 7: harmost.v1.SetHeartbeatInterval
+	(*Ping)(nil),                     // 8: harmost.v1.Ping
+	(*WatchContainersRequest)(nil),   // 9: harmost.v1.WatchContainersRequest
+	(*UnwatchContainersRequest)(nil), // 10: harmost.v1.UnwatchContainersRequest
+	(*ContainerActionRequest)(nil),   // 11: harmost.v1.ContainerActionRequest
+	(*AgentMessage)(nil),             // 12: harmost.v1.AgentMessage
+	(*ContainerActionResult)(nil),    // 13: harmost.v1.ContainerActionResult
+	(*AgentHello)(nil),               // 14: harmost.v1.AgentHello
+	(*JobStatusUpdate)(nil),          // 15: harmost.v1.JobStatusUpdate
+	(*LogChunk)(nil),                 // 16: harmost.v1.LogChunk
+	(*Heartbeat)(nil),                // 17: harmost.v1.Heartbeat
+	(*SystemMetrics)(nil),            // 18: harmost.v1.SystemMetrics
+	(*Pong)(nil),                     // 19: harmost.v1.Pong
+	(*ContainerInfo)(nil),            // 20: harmost.v1.ContainerInfo
+	(*ContainerPort)(nil),            // 21: harmost.v1.ContainerPort
+	(*ContainerMount)(nil),           // 22: harmost.v1.ContainerMount
+	(*ContainerStats)(nil),           // 23: harmost.v1.ContainerStats
+	(*ContainerListUpdate)(nil),      // 24: harmost.v1.ContainerListUpdate
+	(*JobSpec)(nil),                  // 25: harmost.v1.JobSpec
+	(*VolumeMount)(nil),              // 26: harmost.v1.VolumeMount
+	(*ResourceLimits)(nil),           // 27: harmost.v1.ResourceLimits
+	nil,                              // 28: harmost.v1.JobSpec.EnvEntry
+	nil,                              // 29: harmost.v1.JobSpec.LabelsEntry
+	(*timestamppb.Timestamp)(nil),    // 30: google.protobuf.Timestamp
 }
 var file_harmost_v1_agent_proto_depIdxs = []int32{
-	4,  // 0: harmost.v1.HubMessage.dispatch_job:type_name -> harmost.v1.DispatchJobRequest
-	5,  // 1: harmost.v1.HubMessage.cancel_job:type_name -> harmost.v1.CancelJobRequest
-	6,  // 2: harmost.v1.HubMessage.set_heartbeat_interval:type_name -> harmost.v1.SetHeartbeatInterval
-	7,  // 3: harmost.v1.HubMessage.ping:type_name -> harmost.v1.Ping
-	8,  // 4: harmost.v1.HubMessage.watch_containers:type_name -> harmost.v1.WatchContainersRequest
-	9,  // 5: harmost.v1.HubMessage.unwatch_containers:type_name -> harmost.v1.UnwatchContainersRequest
-	19, // 6: harmost.v1.DispatchJobRequest.spec:type_name -> harmost.v1.JobSpec
-	24, // 7: harmost.v1.Ping.sent_at:type_name -> google.protobuf.Timestamp
-	11, // 8: harmost.v1.AgentMessage.hello:type_name -> harmost.v1.AgentHello
-	12, // 9: harmost.v1.AgentMessage.status_update:type_name -> harmost.v1.JobStatusUpdate
-	13, // 10: harmost.v1.AgentMessage.log_chunk:type_name -> harmost.v1.LogChunk
-	14, // 11: harmost.v1.AgentMessage.heartbeat:type_name -> harmost.v1.Heartbeat
-	16, // 12: harmost.v1.AgentMessage.pong:type_name -> harmost.v1.Pong
-	18, // 13: harmost.v1.AgentMessage.container_list:type_name -> harmost.v1.ContainerListUpdate
-	0,  // 14: harmost.v1.JobStatusUpdate.state:type_name -> harmost.v1.JobState
-	24, // 15: harmost.v1.JobStatusUpdate.timestamp:type_name -> google.protobuf.Timestamp
-	24, // 16: harmost.v1.LogChunk.timestamp:type_name -> google.protobuf.Timestamp
-	1,  // 17: harmost.v1.LogChunk.stream:type_name -> harmost.v1.LogStream
-	24, // 18: harmost.v1.Heartbeat.timestamp:type_name -> google.protobuf.Timestamp
-	15, // 19: harmost.v1.Heartbeat.metrics:type_name -> harmost.v1.SystemMetrics
-	24, // 20: harmost.v1.Pong.ping_sent_at:type_name -> google.protobuf.Timestamp
-	24, // 21: harmost.v1.Pong.received_at:type_name -> google.protobuf.Timestamp
-	24, // 22: harmost.v1.ContainerInfo.started_at:type_name -> google.protobuf.Timestamp
-	17, // 23: harmost.v1.ContainerListUpdate.containers:type_name -> harmost.v1.ContainerInfo
-	22, // 24: harmost.v1.JobSpec.env:type_name -> harmost.v1.JobSpec.EnvEntry
-	20, // 25: harmost.v1.JobSpec.volume_mounts:type_name -> harmost.v1.VolumeMount
-	21, // 26: harmost.v1.JobSpec.resource_limits:type_name -> harmost.v1.ResourceLimits
-	23, // 27: harmost.v1.JobSpec.labels:type_name -> harmost.v1.JobSpec.LabelsEntry
-	2,  // 28: harmost.v1.JobSpec.pull_policy:type_name -> harmost.v1.PullPolicy
-	10, // 29: harmost.v1.AgentService.Connect:input_type -> harmost.v1.AgentMessage
-	3,  // 30: harmost.v1.AgentService.Connect:output_type -> harmost.v1.HubMessage
-	30, // [30:31] is the sub-list for method output_type
-	29, // [29:30] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	5,  // 0: harmost.v1.HubMessage.dispatch_job:type_name -> harmost.v1.DispatchJobRequest
+	6,  // 1: harmost.v1.HubMessage.cancel_job:type_name -> harmost.v1.CancelJobRequest
+	7,  // 2: harmost.v1.HubMessage.set_heartbeat_interval:type_name -> harmost.v1.SetHeartbeatInterval
+	8,  // 3: harmost.v1.HubMessage.ping:type_name -> harmost.v1.Ping
+	9,  // 4: harmost.v1.HubMessage.watch_containers:type_name -> harmost.v1.WatchContainersRequest
+	10, // 5: harmost.v1.HubMessage.unwatch_containers:type_name -> harmost.v1.UnwatchContainersRequest
+	11, // 6: harmost.v1.HubMessage.container_action:type_name -> harmost.v1.ContainerActionRequest
+	25, // 7: harmost.v1.DispatchJobRequest.spec:type_name -> harmost.v1.JobSpec
+	30, // 8: harmost.v1.Ping.sent_at:type_name -> google.protobuf.Timestamp
+	0,  // 9: harmost.v1.ContainerActionRequest.action:type_name -> harmost.v1.ContainerAction
+	14, // 10: harmost.v1.AgentMessage.hello:type_name -> harmost.v1.AgentHello
+	15, // 11: harmost.v1.AgentMessage.status_update:type_name -> harmost.v1.JobStatusUpdate
+	16, // 12: harmost.v1.AgentMessage.log_chunk:type_name -> harmost.v1.LogChunk
+	17, // 13: harmost.v1.AgentMessage.heartbeat:type_name -> harmost.v1.Heartbeat
+	19, // 14: harmost.v1.AgentMessage.pong:type_name -> harmost.v1.Pong
+	24, // 15: harmost.v1.AgentMessage.container_list:type_name -> harmost.v1.ContainerListUpdate
+	13, // 16: harmost.v1.AgentMessage.container_action_result:type_name -> harmost.v1.ContainerActionResult
+	0,  // 17: harmost.v1.ContainerActionResult.action:type_name -> harmost.v1.ContainerAction
+	1,  // 18: harmost.v1.JobStatusUpdate.state:type_name -> harmost.v1.JobState
+	30, // 19: harmost.v1.JobStatusUpdate.timestamp:type_name -> google.protobuf.Timestamp
+	30, // 20: harmost.v1.LogChunk.timestamp:type_name -> google.protobuf.Timestamp
+	2,  // 21: harmost.v1.LogChunk.stream:type_name -> harmost.v1.LogStream
+	30, // 22: harmost.v1.Heartbeat.timestamp:type_name -> google.protobuf.Timestamp
+	18, // 23: harmost.v1.Heartbeat.metrics:type_name -> harmost.v1.SystemMetrics
+	30, // 24: harmost.v1.Pong.ping_sent_at:type_name -> google.protobuf.Timestamp
+	30, // 25: harmost.v1.Pong.received_at:type_name -> google.protobuf.Timestamp
+	30, // 26: harmost.v1.ContainerInfo.started_at:type_name -> google.protobuf.Timestamp
+	21, // 27: harmost.v1.ContainerInfo.ports:type_name -> harmost.v1.ContainerPort
+	22, // 28: harmost.v1.ContainerInfo.volumes:type_name -> harmost.v1.ContainerMount
+	23, // 29: harmost.v1.ContainerInfo.stats:type_name -> harmost.v1.ContainerStats
+	20, // 30: harmost.v1.ContainerListUpdate.containers:type_name -> harmost.v1.ContainerInfo
+	28, // 31: harmost.v1.JobSpec.env:type_name -> harmost.v1.JobSpec.EnvEntry
+	26, // 32: harmost.v1.JobSpec.volume_mounts:type_name -> harmost.v1.VolumeMount
+	27, // 33: harmost.v1.JobSpec.resource_limits:type_name -> harmost.v1.ResourceLimits
+	29, // 34: harmost.v1.JobSpec.labels:type_name -> harmost.v1.JobSpec.LabelsEntry
+	3,  // 35: harmost.v1.JobSpec.pull_policy:type_name -> harmost.v1.PullPolicy
+	12, // 36: harmost.v1.AgentService.Connect:input_type -> harmost.v1.AgentMessage
+	4,  // 37: harmost.v1.AgentService.Connect:output_type -> harmost.v1.HubMessage
+	37, // [37:38] is the sub-list for method output_type
+	36, // [36:37] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_harmost_v1_agent_proto_init() }
@@ -1781,23 +2270,25 @@ func file_harmost_v1_agent_proto_init() {
 		(*HubMessage_Ping)(nil),
 		(*HubMessage_WatchContainers)(nil),
 		(*HubMessage_UnwatchContainers)(nil),
+		(*HubMessage_ContainerAction)(nil),
 	}
-	file_harmost_v1_agent_proto_msgTypes[7].OneofWrappers = []any{
+	file_harmost_v1_agent_proto_msgTypes[8].OneofWrappers = []any{
 		(*AgentMessage_Hello)(nil),
 		(*AgentMessage_StatusUpdate)(nil),
 		(*AgentMessage_LogChunk)(nil),
 		(*AgentMessage_Heartbeat)(nil),
 		(*AgentMessage_Pong)(nil),
 		(*AgentMessage_ContainerList)(nil),
+		(*AgentMessage_ContainerActionResult)(nil),
 	}
-	file_harmost_v1_agent_proto_msgTypes[9].OneofWrappers = []any{}
+	file_harmost_v1_agent_proto_msgTypes[11].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harmost_v1_agent_proto_rawDesc), len(file_harmost_v1_agent_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   21,
+			NumEnums:      4,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

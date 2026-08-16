@@ -219,6 +219,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/agents/{id}/containers/{containerId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a container */
+        post: operations["startContainer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{id}/containers/{containerId}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop a container */
+        post: operations["stopContainer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{id}/containers/{containerId}/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restart a container */
+        post: operations["restartContainer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/agents/{id}/containers/{containerId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove a container
+         * @description Refused (surfaced via the `agent.container_action` result, not this
+         *     response) if the container is running — no force-remove.
+         */
+        post: operations["removeContainer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/agent-tokens": {
         parameters: {
             query?: never;
@@ -586,10 +670,41 @@ export interface components {
             lines: components["schemas"]["LogLine"][];
         };
         /**
-         * @description A single running container on an agent's host, as reported by the
-         *     Docker SDK. `started_at` is the container's creation time (the list
-         *     endpoint doesn't expose a separate start time, and running-only
-         *     filtering makes the two coincide for practical purposes).
+         * @description `host_ip`/`public_port` are empty/0 when the port isn't published to
+         *     the host — Docker's own zero-value convention, not a tri-state.
+         */
+        ContainerPort: {
+            host_ip: string;
+            /** Format: int32 */
+            private_port: number;
+            /** Format: int32 */
+            public_port: number;
+            /** @description tcp, udp, or sctp */
+            type: string;
+        };
+        ContainerMount: {
+            /** @description bind, volume, tmpfs, ... */
+            type: string;
+            /** @description Empty for bind mounts (only volumes are named). */
+            name: string;
+            source: string;
+            destination: string;
+            read_only: boolean;
+        };
+        /** @description A single live resource-usage sample. Absent on a `ContainerInfo` unless that container is running. */
+        ContainerStats: {
+            /** Format: float */
+            cpu_usage_percent: number;
+            /** Format: int64 */
+            memory_usage_bytes: number;
+            /** Format: int64 */
+            memory_limit_bytes: number;
+        };
+        /**
+         * @description A single container on an agent's host, as reported by the Docker SDK
+         *     — any state, not just running. `started_at` is the container's
+         *     creation time (the list endpoint doesn't expose a separate start
+         *     time). `stats` is only present while `state` is `running`.
          */
         ContainerInfo: {
             id: string;
@@ -599,10 +714,22 @@ export interface components {
             status: string;
             /** Format: date-time */
             started_at: string;
+            ports: components["schemas"]["ContainerPort"][];
+            volumes: components["schemas"]["ContainerMount"][];
+            stats?: components["schemas"]["ContainerStats"];
         };
-        /** @description Snapshot of every running container on the agent's host. */
+        /** @description Snapshot of every container on the agent's host, any state. */
         ContainersPayload: {
             containers: components["schemas"]["ContainerInfo"][];
+        };
+        /** @description Result of a start/stop/restart/remove request on a single container. */
+        ContainerActionPayload: {
+            container_id: string;
+            /** @enum {string} */
+            action: "start" | "stop" | "restart" | "remove";
+            success: boolean;
+            /** @description Set when `success` is false. */
+            error?: string;
         };
         /**
          * @description Agent lifecycle and liveness. Carries no `payload` — heartbeat metrics
@@ -661,8 +788,23 @@ export interface components {
             at: string;
             payload: components["schemas"]["ContainersPayload"];
         };
+        /**
+         * @description Reports the outcome of a start/stop/restart/remove request. Sent
+         *     once, in addition to (not instead of) the next `agent.containers`
+         *     push reflecting the outcome. No `job_id` — containers here aren't
+         *     necessarily harmost-dispatched.
+         */
+        ContainerActionEvent: {
+            /** @enum {string} */
+            type: "agent.container_action";
+            /** Format: uuid */
+            agent_id: string;
+            /** Format: date-time */
+            at: string;
+            payload: components["schemas"]["ContainerActionPayload"];
+        };
         /** @description A single frame on the `/ws` stream. */
-        HubEvent: components["schemas"]["AgentEvent"] | components["schemas"]["JobStatusEvent"] | components["schemas"]["JobLogEvent"] | components["schemas"]["ContainersEvent"];
+        HubEvent: components["schemas"]["AgentEvent"] | components["schemas"]["JobStatusEvent"] | components["schemas"]["JobLogEvent"] | components["schemas"]["ContainersEvent"] | components["schemas"]["ContainerActionEvent"];
     };
     responses: {
         /** @description Missing or invalid bearer token. */
@@ -714,11 +856,21 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description The agent exists but has no live gRPC stream. */
+        AgentNotConnected: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
     parameters: {
         AgentID: string;
         JobID: string;
         TokenID: string;
+        ContainerID: string;
     };
     requestBodies: never;
     headers: never;
@@ -1017,6 +1169,106 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    startContainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dispatched to the agent. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AgentNotConnected"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    stopContainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dispatched to the agent. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AgentNotConnected"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    restartContainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dispatched to the agent. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AgentNotConnected"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    removeContainer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+                containerId: components["parameters"]["ContainerID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Dispatched to the agent. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["AgentNotConnected"];
             500: components["responses"]["InternalError"];
         };
     };

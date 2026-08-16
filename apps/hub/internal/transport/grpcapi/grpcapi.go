@@ -99,6 +99,35 @@ func (s *Server) UnwatchContainers(ctx context.Context, agentID string) error {
 	})
 }
 
+// ContainerAction asks a currently-connected agent to perform a lifecycle
+// action on a container. Unlike Watch/Unwatch, an agent that isn't
+// connected genuinely can't do anything — same as Dispatch/Cancel.
+func (s *Server) ContainerAction(ctx context.Context, agentID, containerID, action string) error {
+	send, ok := s.reg.get(agentID)
+	if !ok {
+		return fmt.Errorf("agent %s is not connected", agentID)
+	}
+	protoAction, ok := containerActionToProto[action]
+	if !ok {
+		return fmt.Errorf("unknown container action %q", action)
+	}
+	return send(&harmostv1.HubMessage{
+		Payload: &harmostv1.HubMessage_ContainerAction{
+			ContainerAction: &harmostv1.ContainerActionRequest{
+				ContainerId: containerID,
+				Action:      protoAction,
+			},
+		},
+	})
+}
+
+var containerActionToProto = map[string]harmostv1.ContainerAction{
+	"start":   harmostv1.ContainerAction_CONTAINER_ACTION_START,
+	"stop":    harmostv1.ContainerAction_CONTAINER_ACTION_STOP,
+	"restart": harmostv1.ContainerAction_CONTAINER_ACTION_RESTART,
+	"remove":  harmostv1.ContainerAction_CONTAINER_ACTION_REMOVE,
+}
+
 // ─── registry ────────────────────────────────────────────────────────────────
 
 type sendFn func(*harmostv1.HubMessage) error

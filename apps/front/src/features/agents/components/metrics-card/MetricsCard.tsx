@@ -1,6 +1,7 @@
 import type { Agent } from '@/features/agents/api/types';
 import { useMetricsHistory } from '@/features/agents/hooks/useMetricsHistory';
 import { formatRelativeTime } from '@/features/agents/lib/formatRelativeTime';
+import { formatBytes } from '@/features/agents/lib/formatBytes';
 import { MetricAreaChart } from './MetricAreaChart';
 import {
   Card,
@@ -15,14 +16,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shar
 
 interface MetricsCardProps {
   agent: Agent;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
 function formatCapacity(used: number | undefined, total: number | undefined): string | undefined {
