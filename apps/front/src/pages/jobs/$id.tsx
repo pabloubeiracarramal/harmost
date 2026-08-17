@@ -11,7 +11,6 @@ import {
   DetailRow,
   LogViewer,
 } from '@/features/jobs';
-import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 function formatDuration(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -47,87 +46,77 @@ export function JobDetailPage({ id }: { id: string }) {
   const cancel = useCancelJob(id);
 
   if (isLoading) {
-    return (
-      <PageContainer>
-        <p className="text-neutral-500">Loading…</p>
-      </PageContainer>
-    );
+    return <p className="text-neutral-500">Loading…</p>;
   }
 
   if (!job) {
-    return (
-      <PageContainer>
-        <p className="text-neutral-500">Job not found.</p>
-      </PageContainer>
-    );
+    return <p className="text-neutral-500">Job not found.</p>;
   }
 
   return (
-    <PageContainer>
-      <div className="space-y-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="truncate font-mono text-2xl font-bold tracking-tight">{job.spec.image}</h1>
-            {job.message && (
-              <p className="mt-1 text-sm text-muted-foreground">{job.message}</p>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <JobStateBadge state={job.state} />
-            {!isTerminal(job.state) && (
-              <button
-                onClick={() => cancel.mutate()}
-                disabled={cancel.isPending}
-                className="rounded-lg border border-red-500/40 px-3 py-1.5 text-sm font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-              >
-                {cancel.isPending ? 'Cancelling…' : 'Cancel'}
-              </button>
-            )}
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="truncate font-mono text-2xl font-bold tracking-tight">{job.spec.image}</h1>
+          {job.message && (
+            <p className="mt-1 text-sm text-muted-foreground">{job.message}</p>
+          )}
         </div>
-
-        {cancel.error && (
-          <p className="text-sm text-red-400">{(cancel.error as Error).message}</p>
-        )}
-
-        {/* Spec + timing */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-5">
-            <DetailRow label="Job ID" value={job.id} />
-            <DetailRow label="Agent" value={job.agent_id} link={`/agents/${job.agent_id}`} />
-            {job.spec.command && <DetailRow label="Command" value={job.spec.command.join(' ')} />}
-            {job.spec.args && <DetailRow label="Args" value={job.spec.args.join(' ')} />}
-            {job.spec.timeout_seconds ? (
-              <DetailRow label="Timeout" value={`${job.spec.timeout_seconds}s`} />
-            ) : null}
-            {job.spec.env && (
-              <DetailRow label="Env" value={Object.keys(job.spec.env).join(', ')} />
-            )}
-          </div>
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-5">
-            <DetailRow label="Created" value={new Date(job.created_at).toLocaleString()} />
-            {job.started_at && (
-              <DetailRow label="Started" value={new Date(job.started_at).toLocaleString()} />
-            )}
-            {job.finished_at && (
-              <DetailRow label="Finished" value={new Date(job.finished_at).toLocaleString()} />
-            )}
-            {job.started_at && job.finished_at && (
-              <DetailRow
-                label="Duration"
-                value={formatDuration(
-                  new Date(job.finished_at).getTime() - new Date(job.started_at).getTime()
-                )}
-              />
-            )}
-            {job.exit_code != null && (
-              <DetailRow label="Exit code" value={String(job.exit_code)} />
-            )}
-          </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <JobStateBadge state={job.state} />
+          {!isTerminal(job.state) && (
+            <button
+              onClick={() => cancel.mutate()}
+              disabled={cancel.isPending}
+              className="rounded-lg border border-red-500/40 px-3 py-1.5 text-sm font-medium text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+            >
+              {cancel.isPending ? 'Cancelling…' : 'Cancel'}
+            </button>
+          )}
         </div>
-
-        <LogViewer lines={lines} live={!isTerminal(job.state)} />
       </div>
-    </PageContainer>
+
+      {cancel.error && (
+        <p className="text-sm text-red-400">{(cancel.error as Error).message}</p>
+      )}
+
+      {/* Spec + timing */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-5">
+          <DetailRow label="Job ID" value={job.id} />
+          <DetailRow label="Agent" value={job.agent_id} link={`/agents/${job.agent_id}`} />
+          {job.spec.command && <DetailRow label="Command" value={job.spec.command.join(' ')} />}
+          {job.spec.args && <DetailRow label="Args" value={job.spec.args.join(' ')} />}
+          {job.spec.timeout_seconds ? (
+            <DetailRow label="Timeout" value={`${job.spec.timeout_seconds}s`} />
+          ) : null}
+          {job.spec.env && (
+            <DetailRow label="Env" value={Object.keys(job.spec.env).join(', ')} />
+          )}
+        </div>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 px-5">
+          <DetailRow label="Created" value={new Date(job.created_at).toLocaleString()} />
+          {job.started_at && (
+            <DetailRow label="Started" value={new Date(job.started_at).toLocaleString()} />
+          )}
+          {job.finished_at && (
+            <DetailRow label="Finished" value={new Date(job.finished_at).toLocaleString()} />
+          )}
+          {job.started_at && job.finished_at && (
+            <DetailRow
+              label="Duration"
+              value={formatDuration(
+                new Date(job.finished_at).getTime() - new Date(job.started_at).getTime()
+              )}
+            />
+          )}
+          {job.exit_code != null && (
+            <DetailRow label="Exit code" value={String(job.exit_code)} />
+          )}
+        </div>
+      </div>
+
+      <LogViewer lines={lines} live={!isTerminal(job.state)} />
+    </div>
   );
 }

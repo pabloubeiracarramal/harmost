@@ -22,11 +22,11 @@ src/
     types/api-error.ts     # ApiError
     lib/utils.ts           # cn() helper
     components/layout/      # generic layout primitives — presentational, except SidebarFooter (see below)
-      app-layout/AppLayout.tsx        # authenticated shell frame (sidebar + top bar + content)
+      app-layout/AppLayout.tsx        # authenticated shell frame (sidebar + top bar + content) — wraps children in PageContainer, so pages never do
       sidebar/SidebarContainer.tsx    # composes SidebarHeader/SidebarNav/SidebarFooter, no props
       sidebar/SidebarFooter.tsx       # signed-in user menu + sign out — calls useMe() directly
       top-bar/TopBar.tsx              # persistent breadcrumb header, route-driven (no feature hooks)
-      page-container/PageContainer.tsx # per-page content wrapper (padding/max-width only)
+      page-container/PageContainer.tsx # content padding/max-width, applied once by AppLayout — not imported by pages
       auth-layout/AuthLayout.tsx      # chrome for unauthenticated pages (login, device)
   features/
     agents/                # agent domain: list/detail hooks, socket, presentational pieces
