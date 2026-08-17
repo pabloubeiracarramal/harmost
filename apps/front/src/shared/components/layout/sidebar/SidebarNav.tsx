@@ -1,11 +1,10 @@
 import { Link } from '@tanstack/react-router';
-import { Bot, KeyRound, ListChecks, LayoutGrid } from 'lucide-react';
+import { Bot, ListChecks, LayoutGrid } from 'lucide-react';
 
 const NAV_ITEMS = [
     { to: '/projects', label: 'Projects', icon: LayoutGrid },
     { to: '/dashboard', label: 'Agents', icon: Bot },
     { to: '/jobs', label: 'Jobs', icon: ListChecks },
-    { to: '/tokens', label: 'Tokens', icon: KeyRound },
 ] as const;
 
 export function SidebarNav() {

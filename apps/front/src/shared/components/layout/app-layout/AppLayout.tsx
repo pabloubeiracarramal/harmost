@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { TopBar } from '@/shared/components/layout/top-bar/TopBar';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 import { SidebarContainer } from '../sidebar/SidebarContainer';
 
 interface AppLayoutProps {
@@ -12,7 +13,9 @@ export function AppLayout({  children }: AppLayoutProps) {
       <SidebarContainer/>
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto">
+          <PageContainer>{children}</PageContainer>
+        </main>
       </div>
     </div>
   );

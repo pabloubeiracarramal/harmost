@@ -14,7 +14,6 @@ import { Route as DeviceRouteImport } from './routes/device'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
-import { Route as AuthenticatedTokensRouteImport } from './routes/_authenticated/tokens'
 import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedJobsIndexRouteImport } from './routes/_authenticated/jobs/index'
@@ -45,11 +44,6 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedTokensRoute = AuthenticatedTokensRouteImport.update({
-  id: '/tokens',
-  path: '/tokens',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
   id: '/projects',
@@ -88,7 +82,6 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/projects': typeof AuthenticatedProjectsRoute
-  '/tokens': typeof AuthenticatedTokensRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/agents/$id': typeof AuthenticatedAgentsIdRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
@@ -101,7 +94,6 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/projects': typeof AuthenticatedProjectsRoute
-  '/tokens': typeof AuthenticatedTokensRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/agents/$id': typeof AuthenticatedAgentsIdRoute
   '/jobs/$id': typeof AuthenticatedJobsIdRoute
@@ -116,7 +108,6 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/projects': typeof AuthenticatedProjectsRoute
-  '/_authenticated/tokens': typeof AuthenticatedTokensRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/agents/$id': typeof AuthenticatedAgentsIdRoute
   '/_authenticated/jobs/$id': typeof AuthenticatedJobsIdRoute
@@ -131,7 +122,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/projects'
-    | '/tokens'
     | '/auth/callback'
     | '/agents/$id'
     | '/jobs/$id'
@@ -144,7 +134,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/projects'
-    | '/tokens'
     | '/auth/callback'
     | '/agents/$id'
     | '/jobs/$id'
@@ -158,7 +147,6 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/dashboard'
     | '/_authenticated/projects'
-    | '/_authenticated/tokens'
     | '/auth/callback'
     | '/_authenticated/agents/$id'
     | '/_authenticated/jobs/$id'
@@ -211,13 +199,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/tokens': {
-      id: '/_authenticated/tokens'
-      path: '/tokens'
-      fullPath: '/tokens'
-      preLoaderRoute: typeof AuthenticatedTokensRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/projects': {
       id: '/_authenticated/projects'
       path: '/projects'
@@ -266,7 +247,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
-  AuthenticatedTokensRoute: typeof AuthenticatedTokensRoute
   AuthenticatedAgentsIdRoute: typeof AuthenticatedAgentsIdRoute
   AuthenticatedJobsIdRoute: typeof AuthenticatedJobsIdRoute
   AuthenticatedJobsNewRoute: typeof AuthenticatedJobsNewRoute
@@ -276,7 +256,6 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
-  AuthenticatedTokensRoute: AuthenticatedTokensRoute,
   AuthenticatedAgentsIdRoute: AuthenticatedAgentsIdRoute,
   AuthenticatedJobsIdRoute: AuthenticatedJobsIdRoute,
   AuthenticatedJobsNewRoute: AuthenticatedJobsNewRoute,

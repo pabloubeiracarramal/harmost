@@ -1,13 +1,12 @@
 import { useAgents, useAgentsListSocket, AgentCard, EmptyState } from '@/features/agents';
 import { Button } from '@/shared/components/ui/button';
-import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function DashboardPage() {
   const { data: agents = [], isLoading } = useAgents();
   useAgentsListSocket();
 
   return (
-    <PageContainer>
+    <>
       <div className="mb-6 flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">Machines running the Harmost agent.</p>
         <Button asChild>
@@ -25,6 +24,6 @@ export function DashboardPage() {
           ))}
         </div>
       )}
-    </PageContainer>
+    </>
   );
 }
