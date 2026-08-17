@@ -161,7 +161,13 @@ export interface paths {
         get: operations["getAgent"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Unpair an agent
+         * @description Soft-deletes the agent: revokes its token(s), force-disconnects its
+         *     gRPC stream if currently connected, and hides it from `listAgents`/
+         *     `getAgent`. Job history belonging to the agent is kept.
+         */
+        delete: operations["deleteAgent"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1120,6 +1126,29 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Agent"];
                 };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    deleteAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["AgentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unpaired. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];

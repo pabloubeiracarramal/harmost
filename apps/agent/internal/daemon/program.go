@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"log"
 	"math"
 	"time"
@@ -64,6 +65,10 @@ func (p *AgentProgram) run(ctx context.Context) {
 
 		if err := client.Connect(ctx, target, cfg.Token, cfg.Insecure); err != nil {
 			if ctx.Err() != nil {
+				return
+			}
+			if errors.Is(err, agentgrpc.ErrUnpaired) {
+				log.Printf("agent: this agent has been unpaired — run 'harmost pair <hub-url>' to reconnect")
 				return
 			}
 			log.Printf("agent: connection lost (%v), reconnecting in %s", err, backoff)

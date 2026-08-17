@@ -55,6 +55,14 @@ func (r *AgentTokenRepo) Revoke(ctx context.Context, orgID, id string) error {
 	return nil
 }
 
+// RevokeByAgentID revokes every live token tied to an agent (used when the
+// agent itself is deleted). An agent with no live token is not an error.
+func (r *AgentTokenRepo) RevokeByAgentID(ctx context.Context, orgID, agentID string) error {
+	return r.db.WithContext(ctx).Model(&domain.AgentToken{}).
+		Where("org_id = ? AND agent_id = ? AND revoked_at IS NULL", orgID, agentID).
+		Update("revoked_at", time.Now()).Error
+}
+
 // ─── DeviceCodeRepo ───────────────────────────────────────────────────────────
 
 type DeviceCodeRepo struct {

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
 	"github.com/harmost/hub/internal/domain"
 	"github.com/harmost/hub/internal/events"
 	"github.com/harmost/hub/internal/service"
+	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
 	"google.golang.org/grpc"
 )
 
@@ -33,6 +33,20 @@ func (s *Server) Register(g *grpc.Server) {
 func (s *Server) Connected(agentID string) bool {
 	_, ok := s.reg.get(agentID)
 	return ok
+}
+
+// Kick tells agentID's active stream, if any, that it has been unpaired —
+// so it stops reconnecting on its own rather than just seeing a generic
+// disconnect and retrying forever with a now-revoked token — then
+// force-closes the stream so it doesn't linger until the agent notices on
+// its own.
+func (s *Server) Kick(agentID string) {
+	if send, ok := s.reg.get(agentID); ok {
+		_ = send(&harmostv1.HubMessage{
+			Payload: &harmostv1.HubMessage_Unpair{Unpair: &harmostv1.Unpair{}},
+		})
+	}
+	s.reg.kick(agentID)
 }
 
 // Dispatch sends a job to a currently-connected agent.
@@ -135,22 +149,33 @@ type sendFn func(*harmostv1.HubMessage) error
 type registry struct {
 	mu       sync.RWMutex
 	streams  map[string]sendFn
+	kills    map[string]chan struct{}
 	watchers map[string]int
 }
 
 func newRegistry() *registry {
-	return &registry{streams: make(map[string]sendFn), watchers: make(map[string]int)}
+	return &registry{
+		streams:  make(map[string]sendFn),
+		kills:    make(map[string]chan struct{}),
+		watchers: make(map[string]int),
+	}
 }
 
-func (r *registry) add(agentID string, fn sendFn) {
+// add registers the stream's send function and returns a channel that closes
+// when kick is called for this agent.
+func (r *registry) add(agentID string, fn sendFn) chan struct{} {
 	r.mu.Lock()
+	defer r.mu.Unlock()
+	kill := make(chan struct{})
 	r.streams[agentID] = fn
-	r.mu.Unlock()
+	r.kills[agentID] = kill
+	return kill
 }
 
 func (r *registry) remove(agentID string) {
 	r.mu.Lock()
 	delete(r.streams, agentID)
+	delete(r.kills, agentID)
 	r.mu.Unlock()
 }
 
@@ -159,6 +184,18 @@ func (r *registry) get(agentID string) (sendFn, bool) {
 	fn, ok := r.streams[agentID]
 	r.mu.RUnlock()
 	return fn, ok
+}
+
+// kick force-closes agentID's kill channel, if it has an active stream.
+func (r *registry) kick(agentID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	kill, ok := r.kills[agentID]
+	if !ok {
+		return
+	}
+	close(kill)
+	delete(r.kills, agentID)
 }
 
 // addWatcher increments agentID's watcher count and reports whether this

@@ -21,8 +21,8 @@ const deviceCodeTTL = 10 * time.Minute
 // ─── AgentTokenService ────────────────────────────────────────────────────────
 
 type AgentTokenService struct {
-	db         *gorm.DB
-	tokenRepo  domain.AgentTokenRepository
+	db        *gorm.DB
+	tokenRepo domain.AgentTokenRepository
 }
 
 func (s *AgentTokenService) Generate(ctx context.Context, orgID, name, createdByID string) (string, error) {
@@ -70,6 +70,11 @@ func (s *AgentTokenService) List(ctx context.Context, orgID string) ([]domain.Ag
 // stream authenticated with it stays up until it disconnects.
 func (s *AgentTokenService) Revoke(ctx context.Context, orgID, id string) error {
 	return s.tokenRepo.Revoke(ctx, orgID, id)
+}
+
+// RevokeByAgentID revokes every live token belonging to an agent.
+func (s *AgentTokenService) RevokeByAgentID(ctx context.Context, orgID, agentID string) error {
+	return s.tokenRepo.RevokeByAgentID(ctx, orgID, agentID)
 }
 
 // ─── DeviceFlowService ────────────────────────────────────────────────────────

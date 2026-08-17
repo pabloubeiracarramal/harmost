@@ -54,8 +54,13 @@ func runPair(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse device authorize response: %w", err)
 	}
 
-	// 2. Prompt user.
-	fmt.Printf("\n  Go to the following URL to approve this agent:\n\n")
+	// 2. Prompt user. The code is printed alone on its own line so it can be
+	// double-clicked/selected without picking up surrounding text; the full
+	// URL (which also carries the code, via ?code=) is offered as a
+	// one-click alternative to typing it into the dashboard's pair dialog.
+	fmt.Printf("\n  Pairing code:\n\n")
+	fmt.Printf("    %s\n\n", auth.UserCode)
+	fmt.Printf("  Enter it on your dashboard, or go directly to:\n\n")
 	fmt.Printf("    %s\n\n", auth.VerificationURI)
 	fmt.Printf("  Waiting for approval (expires in %ds)...\n\n", auth.ExpiresIn)
 

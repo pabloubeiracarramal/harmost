@@ -7,21 +7,21 @@ import (
 
 type AgentToken struct {
 	Model
-	OrgID       string     `gorm:"type:uuid;not null;index"`
-	AgentID     *string    `gorm:"type:uuid"`
-	Name        string     `gorm:"not null"`
-	TokenHash   string     `gorm:"not null;uniqueIndex"`
-	CreatedByID string     `gorm:"type:uuid;not null"`
+	OrgID       string  `gorm:"type:uuid;not null;index"`
+	AgentID     *string `gorm:"type:uuid"`
+	Name        string  `gorm:"not null"`
+	TokenHash   string  `gorm:"not null;uniqueIndex"`
+	CreatedByID string  `gorm:"type:uuid;not null"`
 	LastUsedAt  *time.Time
 	RevokedAt   *time.Time
 }
 
 type DeviceCode struct {
-	DeviceCode string     `gorm:"primaryKey"`
-	UserCode   string     `gorm:"uniqueIndex;not null"`
-	OrgID      *string    `gorm:"type:uuid"`
+	DeviceCode string  `gorm:"primaryKey"`
+	UserCode   string  `gorm:"uniqueIndex;not null"`
+	OrgID      *string `gorm:"type:uuid"`
 	Token      *string
-	ExpiresAt  time.Time  `gorm:"not null"`
+	ExpiresAt  time.Time `gorm:"not null"`
 	ApprovedAt *time.Time
 	CreatedAt  time.Time
 }
@@ -32,6 +32,7 @@ type AgentTokenRepository interface {
 	TouchLastUsed(ctx context.Context, id string, at time.Time) error
 	ListByOrg(ctx context.Context, orgID string) ([]AgentToken, error)
 	Revoke(ctx context.Context, orgID, id string) error
+	RevokeByAgentID(ctx context.Context, orgID, agentID string) error
 }
 
 type DeviceCodeRepository interface {
@@ -47,6 +48,7 @@ type AgentTokenService interface {
 	Validate(ctx context.Context, token string) (orgID, agentID string, err error)
 	List(ctx context.Context, orgID string) ([]AgentToken, error)
 	Revoke(ctx context.Context, orgID, id string) error
+	RevokeByAgentID(ctx context.Context, orgID, agentID string) error
 }
 
 type DeviceFlowService interface {

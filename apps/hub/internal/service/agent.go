@@ -99,3 +99,8 @@ func (s *AgentService) List(ctx context.Context, orgID string) ([]domain.Agent, 
 func (s *AgentService) GetByID(ctx context.Context, orgID, id string) (*domain.Agent, error) {
 	return s.agentRepo.GetByID(ctx, orgID, id)
 }
+
+// Delete soft-deletes (unpairs) an agent scoped to an org.
+func (s *AgentService) Delete(ctx context.Context, orgID, id string) error {
+	return s.agentRepo.Delete(ctx, orgID, id)
+}

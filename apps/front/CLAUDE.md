@@ -1,7 +1,7 @@
 # Front App — AI Context
 
 ## What this app does
-Web UI for Harmost: GitHub OAuth login, agent dashboard with live status, agent detail with live metric area charts, device-flow approval for agent pairing, and jobs (dispatch form, list with live state badges, detail with live log viewer). Talks to the hub via REST (JWT bearer) for commands and a WebSocket (`/ws?token=<jwt>`) for live events; the Vite dev server proxies `/auth`, `/api`, and `/ws` to the hub on :8080.
+Web UI for Harmost: GitHub OAuth login, agent dashboard with live status and a device-flow pair-agent dialog, agent detail with live metric area charts and an unpair action, and jobs (dispatch form, list with live state badges, detail with live log viewer). Talks to the hub via REST (JWT bearer) for commands and a WebSocket (`/ws?token=<jwt>`) for live events; the Vite dev server proxies `/auth`, `/api`, and `/ws` to the hub on :8080.
 
 ## Architecture: feature-based with a shared kernel
 
@@ -27,7 +27,7 @@ src/
       sidebar/SidebarFooter.tsx       # signed-in user menu + sign out — calls useMe() directly
       top-bar/TopBar.tsx              # persistent breadcrumb header, route-driven (no feature hooks)
       page-container/PageContainer.tsx # content padding/max-width, applied once by AppLayout — not imported by pages
-      auth-layout/AuthLayout.tsx      # chrome for unauthenticated pages (login, device)
+      auth-layout/AuthLayout.tsx      # chrome for unauthenticated pages (login)
   features/
     agents/                # agent domain: list/detail hooks, socket, presentational pieces
     jobs/                  # job domain: list/dispatch/detail hooks, socket, presentational pieces
@@ -38,7 +38,7 @@ src/
 ```
 
 `routes/` and `pages/` are deliberately separate (see ADR 0009):
-- **`routes/`** is TanStack Router's `routesDirectory` (set in `vite.config.ts`). `routes/_authenticated.tsx` is a pathless layout route (ADR 0011) that owns the one `beforeLoad` auth guard and renders the authenticated shell; every protected route lives under `routes/_authenticated/` and is just `createFileRoute(path)` + a `component` pointing at the matching file in `pages/` — no guard of its own. Unauthenticated routes (`login.tsx`, `device.tsx`) keep their own inline `beforeLoad` guard, since they aren't nested under `_authenticated`. For dynamic segments (`agents/$id.tsx`, `jobs/$id.tsx`), the route keeps a small `RouteComponent` wrapper that calls `Route.useParams()` and renders `<XxxPage id={id} />` — params cross into `pages/` as a plain prop.
+- **`routes/`** is TanStack Router's `routesDirectory` (set in `vite.config.ts`). `routes/_authenticated.tsx` is a pathless layout route (ADR 0011) that owns the one `beforeLoad` auth guard and renders the authenticated shell; every protected route lives under `routes/_authenticated/` and is just `createFileRoute(path)` + a `component` pointing at the matching file in `pages/` — no guard of its own. The one unauthenticated route (`login.tsx`) keeps its own inline `beforeLoad` guard, since it isn't nested under `_authenticated`. For dynamic segments (`agents/$id.tsx`, `jobs/$id.tsx`) and search params (`dashboard.tsx`'s `?code=`), the route keeps a small `RouteComponent` wrapper that calls `Route.useParams()`/`Route.useSearch()` and renders `<XxxPage id={id} />` — params cross into `pages/` as plain props.
 - **`pages/`** mirrors `routes/`'s paths (e.g. `routes/jobs/$id.tsx` ↔ `pages/jobs/$id.tsx`) but contains **zero knowledge of TanStack Router's route-definition APIs** — no `createFileRoute`, no `Route`, no `Route.useParams()`. A page:
   - calls feature hooks directly (`useAgents()`, `useJobsListSocket()`, etc.) — this is *composing* a feature, not owning business logic
   - renders feature-owned presentational components (`AgentCard`, `JobStateBadge`, ...) plus its own layout markup
@@ -65,10 +65,9 @@ Each `features/<feature>/` follows:
 
 ## Routes
 - `/` — home; `/login` — GitHub OAuth button; `/auth/callback` — stores JWT, redirects
-- `/dashboard` — agent list (REST) + live status (WebSocket)
-- `/agents/$id` — agent detail with live metric area charts
+- `/dashboard` — agent list (REST) + live status (WebSocket); `?code=XXXX-XXXX` (from the link `agent pair` prints) opens the pair-agent dialog pre-filled — the dialog is also reachable manually via the "Pair new agent" button, code typed in by hand
+- `/agents/$id` — agent detail with live metric area charts and an unpair action
 - `/jobs` — jobs list with live state badges; `/jobs/new` — dispatch form; `/jobs/$id` — job detail + live log viewer
-- `/device?code=XXXX` — device-flow approval page for agent pairing
 
 ## Runtime
 - Framework: **React 19 + TypeScript 5.7**
@@ -111,7 +110,7 @@ Each `features/<feature>/` follows:
 - Tests: `src/**/*.spec.{ts,tsx}`
 - Prefer `@testing-library/react` for component tests.
 - Use `cn()` from `@/shared/lib/utils` for conditional classNames.
-- Add new routes as a pair: `src/routes/<path>.tsx` (a `component` pointer, or a `RouteComponent` wrapper + `Route.useParams()` for dynamic segments) and `src/pages/<path>.tsx` (the actual composition, taking any params as props). If the route needs auth, put it under `src/routes/_authenticated/<path>.tsx` — no `beforeLoad` needed, the pathless layout route handles it. Only unauthenticated top-level routes (`login.tsx`, `device.tsx`) carry their own inline `beforeLoad` guard. The Vite plugin picks up the `routes/` file automatically on next serve/build.
+- Add new routes as a pair: `src/routes/<path>.tsx` (a `component` pointer, or a `RouteComponent` wrapper + `Route.useParams()`/`Route.useSearch()` for dynamic segments/search params) and `src/pages/<path>.tsx` (the actual composition, taking any params as props). If the route needs auth, put it under `src/routes/_authenticated/<path>.tsx` — no `beforeLoad` needed, the pathless layout route handles it. Only the unauthenticated top-level route (`login.tsx`) carries its own inline `beforeLoad` guard. The Vite plugin picks up the `routes/` file automatically on next serve/build.
 - A page never imports `createFileRoute`/`Route` from `@tanstack/react-router` — only `Link`/`useNavigate` if it needs to navigate. If a page seems to need `Route.useParams()`, that's a sign the param should be threaded from the route file as a prop instead.
 - New query/mutation hooks go in the owning feature's `api/` folder, never inline in a page. Check `api/keys.ts` for an existing key before writing a new one.
 - New WS handling goes through `shared/ws/wsClient.ts` (via `useWsSubscribe`), never a raw `new WebSocket(...)`.

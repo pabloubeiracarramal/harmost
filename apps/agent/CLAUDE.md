@@ -71,7 +71,7 @@ apps/agent/
 │       └── containers.go   # 'agent containers' — list host containers (debugging)
 └── internal/
     ├── config/
-    │   └── config.go       # Load/Save config (hub addr, token)
+    │   └── config.go       # Load/Save/Clear config (hub addr, token)
     ├── daemon/
     │   └── program.go      # service.Interface: Start/Stop + backoff reconnect loop
     ├── docker/

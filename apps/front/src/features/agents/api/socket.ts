@@ -10,11 +10,19 @@ export function useAgentsListSocket() {
 
   useWsSubscribe((e: HubEvent) => {
     if (e.type === 'agent.connected') {
+      // Optimistic patch for an instant status flip, plus an invalidate:
+      // `agent.connected` carries no payload (see AgentEvent in
+      // openapi.yaml), and connecting is also when a freshly-paired
+      // agent's real name/hostname/version replace the "pending"
+      // placeholder set at pairing time — only a refetch picks those up.
       queryClient.setQueryData<Agent[]>(agentKeys.list(), (prev = []) =>
         prev.map((a) =>
-          a.id === e.agent_id ? { ...a, status: 'online', last_seen_at: e.at } : a
+          a.id === e.agent_id
+            ? { ...a, status: 'online', last_seen_at: e.at }
+            : a
         )
       );
+      queryClient.invalidateQueries({ queryKey: agentKeys.list() });
     }
     if (e.type === 'agent.disconnected') {
       queryClient.setQueryData<Agent[]>(agentKeys.list(), (prev = []) =>
@@ -23,7 +31,9 @@ export function useAgentsListSocket() {
     }
     if (e.type === 'agent.heartbeat') {
       queryClient.setQueryData<Agent[]>(agentKeys.list(), (prev = []) =>
-        prev.map((a) => (a.id === e.agent_id ? { ...a, last_seen_at: e.at } : a))
+        prev.map((a) =>
+          a.id === e.agent_id ? { ...a, last_seen_at: e.at } : a
+        )
       );
     }
   });
@@ -45,15 +55,23 @@ export function useAgentDetailSocket(id: string) {
  * never fetched via REST, so — like job logs — it stays out of the query
  * cache; the caller owns its own buffer, this just feeds it.
  */
-export function useAgentContainersSocket(id: string, onContainers: (containers: ContainerInfo[]) => void) {
+export function useAgentContainersSocket(
+  id: string,
+  onContainers: (containers: ContainerInfo[]) => void
+) {
   useWsSubscribe((e: HubEvent) => {
-    if (e.type === 'agent.containers' && e.agent_id === id) onContainers(e.payload.containers);
+    if (e.type === 'agent.containers' && e.agent_id === id)
+      onContainers(e.payload.containers);
   });
 }
 
 /** Forwards the outcome of a start/stop/restart/remove request for a single agent's containers. */
-export function useAgentContainerActionsSocket(id: string, onResult: (result: ContainerActionPayload) => void) {
+export function useAgentContainerActionsSocket(
+  id: string,
+  onResult: (result: ContainerActionPayload) => void
+) {
   useWsSubscribe((e: HubEvent) => {
-    if (e.type === 'agent.container_action' && e.agent_id === id) onResult(e.payload);
+    if (e.type === 'agent.container_action' && e.agent_id === id)
+      onResult(e.payload);
   });
 }

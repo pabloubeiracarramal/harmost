@@ -280,7 +280,7 @@ type DeviceAuthorizeResponse struct {
 	// `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`. Typed by the human.
 	UserCode string `json:"user_code"`
 
-	// VerificationURI `{FRONTEND_URL}/device?code={user_code}`
+	// VerificationURI `{FRONTEND_URL}/dashboard?code={user_code}`
 	VerificationURI string `json:"verification_uri"`
 }
 

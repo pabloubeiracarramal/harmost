@@ -262,6 +262,7 @@ type HubMessage struct {
 	//	*HubMessage_WatchContainers
 	//	*HubMessage_UnwatchContainers
 	//	*HubMessage_ContainerAction
+	//	*HubMessage_Unpair
 	Payload       isHubMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -367,6 +368,15 @@ func (x *HubMessage) GetContainerAction() *ContainerActionRequest {
 	return nil
 }
 
+func (x *HubMessage) GetUnpair() *Unpair {
+	if x != nil {
+		if x, ok := x.Payload.(*HubMessage_Unpair); ok {
+			return x.Unpair
+		}
+	}
+	return nil
+}
+
 type isHubMessage_Payload interface {
 	isHubMessage_Payload()
 }
@@ -399,6 +409,10 @@ type HubMessage_ContainerAction struct {
 	ContainerAction *ContainerActionRequest `protobuf:"bytes,7,opt,name=container_action,json=containerAction,proto3,oneof"`
 }
 
+type HubMessage_Unpair struct {
+	Unpair *Unpair `protobuf:"bytes,8,opt,name=unpair,proto3,oneof"`
+}
+
 func (*HubMessage_DispatchJob) isHubMessage_Payload() {}
 
 func (*HubMessage_CancelJob) isHubMessage_Payload() {}
@@ -412,6 +426,8 @@ func (*HubMessage_WatchContainers) isHubMessage_Payload() {}
 func (*HubMessage_UnwatchContainers) isHubMessage_Payload() {}
 
 func (*HubMessage_ContainerAction) isHubMessage_Payload() {}
+
+func (*HubMessage_Unpair) isHubMessage_Payload() {}
 
 type DispatchJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -728,6 +744,46 @@ func (x *ContainerActionRequest) GetAction() ContainerAction {
 	return ContainerAction_CONTAINER_ACTION_UNSPECIFIED
 }
 
+// Sent once, immediately before the hub force-closes the stream, when the
+// agent has been unpaired (DELETE /api/v1/agents/{id}). The agent should
+// stop reconnecting and clear its local pairing config — `agent pair` is
+// required again to reconnect.
+type Unpair struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Unpair) Reset() {
+	*x = Unpair{}
+	mi := &file_harmost_v1_agent_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Unpair) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Unpair) ProtoMessage() {}
+
+func (x *Unpair) ProtoReflect() protoreflect.Message {
+	mi := &file_harmost_v1_agent_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Unpair.ProtoReflect.Descriptor instead.
+func (*Unpair) Descriptor() ([]byte, []int) {
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{8}
+}
+
 type AgentMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
@@ -746,7 +802,7 @@ type AgentMessage struct {
 
 func (x *AgentMessage) Reset() {
 	*x = AgentMessage{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[8]
+	mi := &file_harmost_v1_agent_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -758,7 +814,7 @@ func (x *AgentMessage) String() string {
 func (*AgentMessage) ProtoMessage() {}
 
 func (x *AgentMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[8]
+	mi := &file_harmost_v1_agent_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -771,7 +827,7 @@ func (x *AgentMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMessage.ProtoReflect.Descriptor instead.
 func (*AgentMessage) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{8}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *AgentMessage) GetPayload() isAgentMessage_Payload {
@@ -904,7 +960,7 @@ type ContainerActionResult struct {
 
 func (x *ContainerActionResult) Reset() {
 	*x = ContainerActionResult{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[9]
+	mi := &file_harmost_v1_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -916,7 +972,7 @@ func (x *ContainerActionResult) String() string {
 func (*ContainerActionResult) ProtoMessage() {}
 
 func (x *ContainerActionResult) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[9]
+	mi := &file_harmost_v1_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -929,7 +985,7 @@ func (x *ContainerActionResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerActionResult.ProtoReflect.Descriptor instead.
 func (*ContainerActionResult) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{9}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ContainerActionResult) GetContainerId() string {
@@ -976,7 +1032,7 @@ type AgentHello struct {
 
 func (x *AgentHello) Reset() {
 	*x = AgentHello{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[10]
+	mi := &file_harmost_v1_agent_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -988,7 +1044,7 @@ func (x *AgentHello) String() string {
 func (*AgentHello) ProtoMessage() {}
 
 func (x *AgentHello) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[10]
+	mi := &file_harmost_v1_agent_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1001,7 +1057,7 @@ func (x *AgentHello) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentHello.ProtoReflect.Descriptor instead.
 func (*AgentHello) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{10}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AgentHello) GetName() string {
@@ -1054,7 +1110,7 @@ type JobStatusUpdate struct {
 
 func (x *JobStatusUpdate) Reset() {
 	*x = JobStatusUpdate{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[11]
+	mi := &file_harmost_v1_agent_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1066,7 +1122,7 @@ func (x *JobStatusUpdate) String() string {
 func (*JobStatusUpdate) ProtoMessage() {}
 
 func (x *JobStatusUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[11]
+	mi := &file_harmost_v1_agent_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1079,7 +1135,7 @@ func (x *JobStatusUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobStatusUpdate.ProtoReflect.Descriptor instead.
 func (*JobStatusUpdate) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{11}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *JobStatusUpdate) GetJobId() string {
@@ -1130,7 +1186,7 @@ type LogChunk struct {
 
 func (x *LogChunk) Reset() {
 	*x = LogChunk{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[12]
+	mi := &file_harmost_v1_agent_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1142,7 +1198,7 @@ func (x *LogChunk) String() string {
 func (*LogChunk) ProtoMessage() {}
 
 func (x *LogChunk) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[12]
+	mi := &file_harmost_v1_agent_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1155,7 +1211,7 @@ func (x *LogChunk) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogChunk.ProtoReflect.Descriptor instead.
 func (*LogChunk) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{12}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *LogChunk) GetJobId() string {
@@ -1204,7 +1260,7 @@ type Heartbeat struct {
 
 func (x *Heartbeat) Reset() {
 	*x = Heartbeat{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[13]
+	mi := &file_harmost_v1_agent_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1216,7 +1272,7 @@ func (x *Heartbeat) String() string {
 func (*Heartbeat) ProtoMessage() {}
 
 func (x *Heartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[13]
+	mi := &file_harmost_v1_agent_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1229,7 +1285,7 @@ func (x *Heartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
 func (*Heartbeat) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{13}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Heartbeat) GetTimestamp() *timestamppb.Timestamp {
@@ -1260,7 +1316,7 @@ type SystemMetrics struct {
 
 func (x *SystemMetrics) Reset() {
 	*x = SystemMetrics{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[14]
+	mi := &file_harmost_v1_agent_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1272,7 +1328,7 @@ func (x *SystemMetrics) String() string {
 func (*SystemMetrics) ProtoMessage() {}
 
 func (x *SystemMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[14]
+	mi := &file_harmost_v1_agent_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1285,7 +1341,7 @@ func (x *SystemMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemMetrics.ProtoReflect.Descriptor instead.
 func (*SystemMetrics) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{14}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SystemMetrics) GetCpuUsagePercent() float32 {
@@ -1340,7 +1396,7 @@ type Pong struct {
 
 func (x *Pong) Reset() {
 	*x = Pong{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[15]
+	mi := &file_harmost_v1_agent_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1352,7 +1408,7 @@ func (x *Pong) String() string {
 func (*Pong) ProtoMessage() {}
 
 func (x *Pong) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[15]
+	mi := &file_harmost_v1_agent_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1365,7 +1421,7 @@ func (x *Pong) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Pong.ProtoReflect.Descriptor instead.
 func (*Pong) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{15}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Pong) GetPingSentAt() *timestamppb.Timestamp {
@@ -1400,7 +1456,7 @@ type ContainerInfo struct {
 
 func (x *ContainerInfo) Reset() {
 	*x = ContainerInfo{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[16]
+	mi := &file_harmost_v1_agent_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1412,7 +1468,7 @@ func (x *ContainerInfo) String() string {
 func (*ContainerInfo) ProtoMessage() {}
 
 func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[16]
+	mi := &file_harmost_v1_agent_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1425,7 +1481,7 @@ func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerInfo.ProtoReflect.Descriptor instead.
 func (*ContainerInfo) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{16}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ContainerInfo) GetId() string {
@@ -1503,7 +1559,7 @@ type ContainerPort struct {
 
 func (x *ContainerPort) Reset() {
 	*x = ContainerPort{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[17]
+	mi := &file_harmost_v1_agent_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1571,7 @@ func (x *ContainerPort) String() string {
 func (*ContainerPort) ProtoMessage() {}
 
 func (x *ContainerPort) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[17]
+	mi := &file_harmost_v1_agent_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +1584,7 @@ func (x *ContainerPort) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerPort.ProtoReflect.Descriptor instead.
 func (*ContainerPort) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{17}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ContainerPort) GetHostIp() string {
@@ -1572,7 +1628,7 @@ type ContainerMount struct {
 
 func (x *ContainerMount) Reset() {
 	*x = ContainerMount{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[18]
+	mi := &file_harmost_v1_agent_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1584,7 +1640,7 @@ func (x *ContainerMount) String() string {
 func (*ContainerMount) ProtoMessage() {}
 
 func (x *ContainerMount) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[18]
+	mi := &file_harmost_v1_agent_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1597,7 +1653,7 @@ func (x *ContainerMount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerMount.ProtoReflect.Descriptor instead.
 func (*ContainerMount) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{18}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ContainerMount) GetType() string {
@@ -1646,7 +1702,7 @@ type ContainerStats struct {
 
 func (x *ContainerStats) Reset() {
 	*x = ContainerStats{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[19]
+	mi := &file_harmost_v1_agent_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1658,7 +1714,7 @@ func (x *ContainerStats) String() string {
 func (*ContainerStats) ProtoMessage() {}
 
 func (x *ContainerStats) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[19]
+	mi := &file_harmost_v1_agent_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1671,7 +1727,7 @@ func (x *ContainerStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerStats.ProtoReflect.Descriptor instead.
 func (*ContainerStats) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{19}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ContainerStats) GetCpuUsagePercent() float32 {
@@ -1707,7 +1763,7 @@ type ContainerListUpdate struct {
 
 func (x *ContainerListUpdate) Reset() {
 	*x = ContainerListUpdate{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[20]
+	mi := &file_harmost_v1_agent_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1719,7 +1775,7 @@ func (x *ContainerListUpdate) String() string {
 func (*ContainerListUpdate) ProtoMessage() {}
 
 func (x *ContainerListUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[20]
+	mi := &file_harmost_v1_agent_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1732,7 +1788,7 @@ func (x *ContainerListUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerListUpdate.ProtoReflect.Descriptor instead.
 func (*ContainerListUpdate) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{20}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ContainerListUpdate) GetContainers() []*ContainerInfo {
@@ -1762,7 +1818,7 @@ type JobSpec struct {
 
 func (x *JobSpec) Reset() {
 	*x = JobSpec{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[21]
+	mi := &file_harmost_v1_agent_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1774,7 +1830,7 @@ func (x *JobSpec) String() string {
 func (*JobSpec) ProtoMessage() {}
 
 func (x *JobSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[21]
+	mi := &file_harmost_v1_agent_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1787,7 +1843,7 @@ func (x *JobSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobSpec.ProtoReflect.Descriptor instead.
 func (*JobSpec) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{21}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *JobSpec) GetImage() string {
@@ -1885,7 +1941,7 @@ type VolumeMount struct {
 
 func (x *VolumeMount) Reset() {
 	*x = VolumeMount{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[22]
+	mi := &file_harmost_v1_agent_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1897,7 +1953,7 @@ func (x *VolumeMount) String() string {
 func (*VolumeMount) ProtoMessage() {}
 
 func (x *VolumeMount) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[22]
+	mi := &file_harmost_v1_agent_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +1966,7 @@ func (x *VolumeMount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VolumeMount.ProtoReflect.Descriptor instead.
 func (*VolumeMount) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{22}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *VolumeMount) GetHostPath() string {
@@ -1944,7 +2000,7 @@ type ResourceLimits struct {
 
 func (x *ResourceLimits) Reset() {
 	*x = ResourceLimits{}
-	mi := &file_harmost_v1_agent_proto_msgTypes[23]
+	mi := &file_harmost_v1_agent_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1956,7 +2012,7 @@ func (x *ResourceLimits) String() string {
 func (*ResourceLimits) ProtoMessage() {}
 
 func (x *ResourceLimits) ProtoReflect() protoreflect.Message {
-	mi := &file_harmost_v1_agent_proto_msgTypes[23]
+	mi := &file_harmost_v1_agent_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1969,7 +2025,7 @@ func (x *ResourceLimits) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceLimits.ProtoReflect.Descriptor instead.
 func (*ResourceLimits) Descriptor() ([]byte, []int) {
-	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{23}
+	return file_harmost_v1_agent_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ResourceLimits) GetMemoryBytes() int64 {
@@ -1991,7 +2047,7 @@ var File_harmost_v1_agent_proto protoreflect.FileDescriptor
 const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"\x16harmost/v1/agent.proto\x12\n" +
-	"harmost.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x96\x04\n" +
+	"harmost.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc4\x04\n" +
 	"\n" +
 	"HubMessage\x12C\n" +
 	"\fdispatch_job\x18\x01 \x01(\v2\x1e.harmost.v1.DispatchJobRequestH\x00R\vdispatchJob\x12=\n" +
@@ -2001,7 +2057,8 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\x04ping\x18\x04 \x01(\v2\x10.harmost.v1.PingH\x00R\x04ping\x12O\n" +
 	"\x10watch_containers\x18\x05 \x01(\v2\".harmost.v1.WatchContainersRequestH\x00R\x0fwatchContainers\x12U\n" +
 	"\x12unwatch_containers\x18\x06 \x01(\v2$.harmost.v1.UnwatchContainersRequestH\x00R\x11unwatchContainers\x12O\n" +
-	"\x10container_action\x18\a \x01(\v2\".harmost.v1.ContainerActionRequestH\x00R\x0fcontainerActionB\t\n" +
+	"\x10container_action\x18\a \x01(\v2\".harmost.v1.ContainerActionRequestH\x00R\x0fcontainerAction\x12,\n" +
+	"\x06unpair\x18\b \x01(\v2\x12.harmost.v1.UnpairH\x00R\x06unpairB\t\n" +
 	"\apayload\"T\n" +
 	"\x12DispatchJobRequest\x12\x15\n" +
 	"\x06job_id\x18\x01 \x01(\tR\x05jobId\x12'\n" +
@@ -2016,7 +2073,8 @@ const file_harmost_v1_agent_proto_rawDesc = "" +
 	"\x18UnwatchContainersRequest\"p\n" +
 	"\x16ContainerActionRequest\x12!\n" +
 	"\fcontainer_id\x18\x01 \x01(\tR\vcontainerId\x123\n" +
-	"\x06action\x18\x02 \x01(\x0e2\x1b.harmost.v1.ContainerActionR\x06action\"\xc8\x03\n" +
+	"\x06action\x18\x02 \x01(\x0e2\x1b.harmost.v1.ContainerActionR\x06action\"\b\n" +
+	"\x06Unpair\"\xc8\x03\n" +
 	"\fAgentMessage\x12.\n" +
 	"\x05hello\x18\x01 \x01(\v2\x16.harmost.v1.AgentHelloH\x00R\x05hello\x12B\n" +
 	"\rstatus_update\x18\x02 \x01(\v2\x1b.harmost.v1.JobStatusUpdateH\x00R\fstatusUpdate\x123\n" +
@@ -2178,7 +2236,7 @@ func file_harmost_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_harmost_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_harmost_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_harmost_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_harmost_v1_agent_proto_goTypes = []any{
 	(ContainerAction)(0),             // 0: harmost.v1.ContainerAction
 	(JobState)(0),                    // 1: harmost.v1.JobState
@@ -2192,25 +2250,26 @@ var file_harmost_v1_agent_proto_goTypes = []any{
 	(*WatchContainersRequest)(nil),   // 9: harmost.v1.WatchContainersRequest
 	(*UnwatchContainersRequest)(nil), // 10: harmost.v1.UnwatchContainersRequest
 	(*ContainerActionRequest)(nil),   // 11: harmost.v1.ContainerActionRequest
-	(*AgentMessage)(nil),             // 12: harmost.v1.AgentMessage
-	(*ContainerActionResult)(nil),    // 13: harmost.v1.ContainerActionResult
-	(*AgentHello)(nil),               // 14: harmost.v1.AgentHello
-	(*JobStatusUpdate)(nil),          // 15: harmost.v1.JobStatusUpdate
-	(*LogChunk)(nil),                 // 16: harmost.v1.LogChunk
-	(*Heartbeat)(nil),                // 17: harmost.v1.Heartbeat
-	(*SystemMetrics)(nil),            // 18: harmost.v1.SystemMetrics
-	(*Pong)(nil),                     // 19: harmost.v1.Pong
-	(*ContainerInfo)(nil),            // 20: harmost.v1.ContainerInfo
-	(*ContainerPort)(nil),            // 21: harmost.v1.ContainerPort
-	(*ContainerMount)(nil),           // 22: harmost.v1.ContainerMount
-	(*ContainerStats)(nil),           // 23: harmost.v1.ContainerStats
-	(*ContainerListUpdate)(nil),      // 24: harmost.v1.ContainerListUpdate
-	(*JobSpec)(nil),                  // 25: harmost.v1.JobSpec
-	(*VolumeMount)(nil),              // 26: harmost.v1.VolumeMount
-	(*ResourceLimits)(nil),           // 27: harmost.v1.ResourceLimits
-	nil,                              // 28: harmost.v1.JobSpec.EnvEntry
-	nil,                              // 29: harmost.v1.JobSpec.LabelsEntry
-	(*timestamppb.Timestamp)(nil),    // 30: google.protobuf.Timestamp
+	(*Unpair)(nil),                   // 12: harmost.v1.Unpair
+	(*AgentMessage)(nil),             // 13: harmost.v1.AgentMessage
+	(*ContainerActionResult)(nil),    // 14: harmost.v1.ContainerActionResult
+	(*AgentHello)(nil),               // 15: harmost.v1.AgentHello
+	(*JobStatusUpdate)(nil),          // 16: harmost.v1.JobStatusUpdate
+	(*LogChunk)(nil),                 // 17: harmost.v1.LogChunk
+	(*Heartbeat)(nil),                // 18: harmost.v1.Heartbeat
+	(*SystemMetrics)(nil),            // 19: harmost.v1.SystemMetrics
+	(*Pong)(nil),                     // 20: harmost.v1.Pong
+	(*ContainerInfo)(nil),            // 21: harmost.v1.ContainerInfo
+	(*ContainerPort)(nil),            // 22: harmost.v1.ContainerPort
+	(*ContainerMount)(nil),           // 23: harmost.v1.ContainerMount
+	(*ContainerStats)(nil),           // 24: harmost.v1.ContainerStats
+	(*ContainerListUpdate)(nil),      // 25: harmost.v1.ContainerListUpdate
+	(*JobSpec)(nil),                  // 26: harmost.v1.JobSpec
+	(*VolumeMount)(nil),              // 27: harmost.v1.VolumeMount
+	(*ResourceLimits)(nil),           // 28: harmost.v1.ResourceLimits
+	nil,                              // 29: harmost.v1.JobSpec.EnvEntry
+	nil,                              // 30: harmost.v1.JobSpec.LabelsEntry
+	(*timestamppb.Timestamp)(nil),    // 31: google.protobuf.Timestamp
 }
 var file_harmost_v1_agent_proto_depIdxs = []int32{
 	5,  // 0: harmost.v1.HubMessage.dispatch_job:type_name -> harmost.v1.DispatchJobRequest
@@ -2220,42 +2279,43 @@ var file_harmost_v1_agent_proto_depIdxs = []int32{
 	9,  // 4: harmost.v1.HubMessage.watch_containers:type_name -> harmost.v1.WatchContainersRequest
 	10, // 5: harmost.v1.HubMessage.unwatch_containers:type_name -> harmost.v1.UnwatchContainersRequest
 	11, // 6: harmost.v1.HubMessage.container_action:type_name -> harmost.v1.ContainerActionRequest
-	25, // 7: harmost.v1.DispatchJobRequest.spec:type_name -> harmost.v1.JobSpec
-	30, // 8: harmost.v1.Ping.sent_at:type_name -> google.protobuf.Timestamp
-	0,  // 9: harmost.v1.ContainerActionRequest.action:type_name -> harmost.v1.ContainerAction
-	14, // 10: harmost.v1.AgentMessage.hello:type_name -> harmost.v1.AgentHello
-	15, // 11: harmost.v1.AgentMessage.status_update:type_name -> harmost.v1.JobStatusUpdate
-	16, // 12: harmost.v1.AgentMessage.log_chunk:type_name -> harmost.v1.LogChunk
-	17, // 13: harmost.v1.AgentMessage.heartbeat:type_name -> harmost.v1.Heartbeat
-	19, // 14: harmost.v1.AgentMessage.pong:type_name -> harmost.v1.Pong
-	24, // 15: harmost.v1.AgentMessage.container_list:type_name -> harmost.v1.ContainerListUpdate
-	13, // 16: harmost.v1.AgentMessage.container_action_result:type_name -> harmost.v1.ContainerActionResult
-	0,  // 17: harmost.v1.ContainerActionResult.action:type_name -> harmost.v1.ContainerAction
-	1,  // 18: harmost.v1.JobStatusUpdate.state:type_name -> harmost.v1.JobState
-	30, // 19: harmost.v1.JobStatusUpdate.timestamp:type_name -> google.protobuf.Timestamp
-	30, // 20: harmost.v1.LogChunk.timestamp:type_name -> google.protobuf.Timestamp
-	2,  // 21: harmost.v1.LogChunk.stream:type_name -> harmost.v1.LogStream
-	30, // 22: harmost.v1.Heartbeat.timestamp:type_name -> google.protobuf.Timestamp
-	18, // 23: harmost.v1.Heartbeat.metrics:type_name -> harmost.v1.SystemMetrics
-	30, // 24: harmost.v1.Pong.ping_sent_at:type_name -> google.protobuf.Timestamp
-	30, // 25: harmost.v1.Pong.received_at:type_name -> google.protobuf.Timestamp
-	30, // 26: harmost.v1.ContainerInfo.started_at:type_name -> google.protobuf.Timestamp
-	21, // 27: harmost.v1.ContainerInfo.ports:type_name -> harmost.v1.ContainerPort
-	22, // 28: harmost.v1.ContainerInfo.volumes:type_name -> harmost.v1.ContainerMount
-	23, // 29: harmost.v1.ContainerInfo.stats:type_name -> harmost.v1.ContainerStats
-	20, // 30: harmost.v1.ContainerListUpdate.containers:type_name -> harmost.v1.ContainerInfo
-	28, // 31: harmost.v1.JobSpec.env:type_name -> harmost.v1.JobSpec.EnvEntry
-	26, // 32: harmost.v1.JobSpec.volume_mounts:type_name -> harmost.v1.VolumeMount
-	27, // 33: harmost.v1.JobSpec.resource_limits:type_name -> harmost.v1.ResourceLimits
-	29, // 34: harmost.v1.JobSpec.labels:type_name -> harmost.v1.JobSpec.LabelsEntry
-	3,  // 35: harmost.v1.JobSpec.pull_policy:type_name -> harmost.v1.PullPolicy
-	12, // 36: harmost.v1.AgentService.Connect:input_type -> harmost.v1.AgentMessage
-	4,  // 37: harmost.v1.AgentService.Connect:output_type -> harmost.v1.HubMessage
-	37, // [37:38] is the sub-list for method output_type
-	36, // [36:37] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	12, // 7: harmost.v1.HubMessage.unpair:type_name -> harmost.v1.Unpair
+	26, // 8: harmost.v1.DispatchJobRequest.spec:type_name -> harmost.v1.JobSpec
+	31, // 9: harmost.v1.Ping.sent_at:type_name -> google.protobuf.Timestamp
+	0,  // 10: harmost.v1.ContainerActionRequest.action:type_name -> harmost.v1.ContainerAction
+	15, // 11: harmost.v1.AgentMessage.hello:type_name -> harmost.v1.AgentHello
+	16, // 12: harmost.v1.AgentMessage.status_update:type_name -> harmost.v1.JobStatusUpdate
+	17, // 13: harmost.v1.AgentMessage.log_chunk:type_name -> harmost.v1.LogChunk
+	18, // 14: harmost.v1.AgentMessage.heartbeat:type_name -> harmost.v1.Heartbeat
+	20, // 15: harmost.v1.AgentMessage.pong:type_name -> harmost.v1.Pong
+	25, // 16: harmost.v1.AgentMessage.container_list:type_name -> harmost.v1.ContainerListUpdate
+	14, // 17: harmost.v1.AgentMessage.container_action_result:type_name -> harmost.v1.ContainerActionResult
+	0,  // 18: harmost.v1.ContainerActionResult.action:type_name -> harmost.v1.ContainerAction
+	1,  // 19: harmost.v1.JobStatusUpdate.state:type_name -> harmost.v1.JobState
+	31, // 20: harmost.v1.JobStatusUpdate.timestamp:type_name -> google.protobuf.Timestamp
+	31, // 21: harmost.v1.LogChunk.timestamp:type_name -> google.protobuf.Timestamp
+	2,  // 22: harmost.v1.LogChunk.stream:type_name -> harmost.v1.LogStream
+	31, // 23: harmost.v1.Heartbeat.timestamp:type_name -> google.protobuf.Timestamp
+	19, // 24: harmost.v1.Heartbeat.metrics:type_name -> harmost.v1.SystemMetrics
+	31, // 25: harmost.v1.Pong.ping_sent_at:type_name -> google.protobuf.Timestamp
+	31, // 26: harmost.v1.Pong.received_at:type_name -> google.protobuf.Timestamp
+	31, // 27: harmost.v1.ContainerInfo.started_at:type_name -> google.protobuf.Timestamp
+	22, // 28: harmost.v1.ContainerInfo.ports:type_name -> harmost.v1.ContainerPort
+	23, // 29: harmost.v1.ContainerInfo.volumes:type_name -> harmost.v1.ContainerMount
+	24, // 30: harmost.v1.ContainerInfo.stats:type_name -> harmost.v1.ContainerStats
+	21, // 31: harmost.v1.ContainerListUpdate.containers:type_name -> harmost.v1.ContainerInfo
+	29, // 32: harmost.v1.JobSpec.env:type_name -> harmost.v1.JobSpec.EnvEntry
+	27, // 33: harmost.v1.JobSpec.volume_mounts:type_name -> harmost.v1.VolumeMount
+	28, // 34: harmost.v1.JobSpec.resource_limits:type_name -> harmost.v1.ResourceLimits
+	30, // 35: harmost.v1.JobSpec.labels:type_name -> harmost.v1.JobSpec.LabelsEntry
+	3,  // 36: harmost.v1.JobSpec.pull_policy:type_name -> harmost.v1.PullPolicy
+	13, // 37: harmost.v1.AgentService.Connect:input_type -> harmost.v1.AgentMessage
+	4,  // 38: harmost.v1.AgentService.Connect:output_type -> harmost.v1.HubMessage
+	38, // [38:39] is the sub-list for method output_type
+	37, // [37:38] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_harmost_v1_agent_proto_init() }
@@ -2271,8 +2331,9 @@ func file_harmost_v1_agent_proto_init() {
 		(*HubMessage_WatchContainers)(nil),
 		(*HubMessage_UnwatchContainers)(nil),
 		(*HubMessage_ContainerAction)(nil),
+		(*HubMessage_Unpair)(nil),
 	}
-	file_harmost_v1_agent_proto_msgTypes[8].OneofWrappers = []any{
+	file_harmost_v1_agent_proto_msgTypes[9].OneofWrappers = []any{
 		(*AgentMessage_Hello)(nil),
 		(*AgentMessage_StatusUpdate)(nil),
 		(*AgentMessage_LogChunk)(nil),
@@ -2281,14 +2342,14 @@ func file_harmost_v1_agent_proto_init() {
 		(*AgentMessage_ContainerList)(nil),
 		(*AgentMessage_ContainerActionResult)(nil),
 	}
-	file_harmost_v1_agent_proto_msgTypes[11].OneofWrappers = []any{}
+	file_harmost_v1_agent_proto_msgTypes[12].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harmost_v1_agent_proto_rawDesc), len(file_harmost_v1_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   26,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
