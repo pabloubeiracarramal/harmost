@@ -1,6 +1,4 @@
-import { Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
-import { AppShell } from '@/app/AppShell';
 import type { LogLine } from '@/shared/ws/wsClient';
 import {
   useJob,
@@ -13,6 +11,7 @@ import {
   DetailRow,
   LogViewer,
 } from '@/features/jobs';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 function formatDuration(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -49,37 +48,31 @@ export function JobDetailPage({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <PageContainer>
         <p className="text-neutral-500">Loading…</p>
-      </AppShell>
+      </PageContainer>
     );
   }
 
   if (!job) {
     return (
-      <AppShell>
+      <PageContainer>
         <p className="text-neutral-500">Job not found.</p>
-      </AppShell>
+      </PageContainer>
     );
   }
 
   return (
-    <AppShell>
+    <PageContainer>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link to="/jobs" className="text-sm text-neutral-400 hover:text-white transition">
-            ← Jobs
-          </Link>
-          <span className="text-neutral-700">/</span>
-          <span className="truncate font-mono text-sm">{job.id.slice(0, 8)}</span>
-        </div>
-
         <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="truncate font-mono text-2xl font-bold">{job.spec.image}</h1>
-            {job.message && <p className="mt-1 text-sm text-neutral-400">{job.message}</p>}
+          <div>
+            <h1 className="truncate font-mono text-2xl font-bold tracking-tight">{job.spec.image}</h1>
+            {job.message && (
+              <p className="mt-1 text-sm text-muted-foreground">{job.message}</p>
+            )}
           </div>
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             <JobStateBadge state={job.state} />
             {!isTerminal(job.state) && (
               <button
@@ -135,6 +128,6 @@ export function JobDetailPage({ id }: { id: string }) {
 
         <LogViewer lines={lines} live={!isTerminal(job.state)} />
       </div>
-    </AppShell>
+    </PageContainer>
   );
 }

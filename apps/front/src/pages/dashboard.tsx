@@ -1,14 +1,14 @@
-import { AppShell } from '@/app/AppShell';
 import { useAgents, useAgentsListSocket, AgentCard, EmptyState } from '@/features/agents';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function DashboardPage() {
   const { data: agents = [], isLoading } = useAgents();
   useAgentsListSocket();
 
   return (
-    <AppShell>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Agents</h2>
+    <PageContainer>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">Machines running the Harmost agent.</p>
         <a
           href="/device"
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
@@ -16,7 +16,6 @@ export function DashboardPage() {
           Pair new agent
         </a>
       </div>
-
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : agents.length === 0 ? (
@@ -28,6 +27,6 @@ export function DashboardPage() {
           ))}
         </div>
       )}
-    </AppShell>
+    </PageContainer>
   );
 }

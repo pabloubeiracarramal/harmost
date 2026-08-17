@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
 import { useApproveDevice } from '@/features/agents';
+import { AuthLayout } from '@/shared/components/layout/auth-layout/AuthLayout';
 
 export function DevicePage() {
   const navigate = useNavigate();
@@ -11,15 +12,11 @@ export function DevicePage() {
   const approve = useApproveDevice();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950">
-      <div className="w-full max-w-sm space-y-6 rounded-xl border border-neutral-800 bg-neutral-900 p-8">
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold text-white">Approve Agent</h1>
-          <p className="text-sm text-neutral-400">
-            An agent is requesting access to your account.
-          </p>
-        </div>
-
+    <AuthLayout
+      title="Approve Agent"
+      description="An agent is requesting access to your account."
+    >
+      <div className="space-y-3">
         {userCode && (
           <div className="rounded-lg bg-neutral-800 p-4 text-center">
             <p className="text-xs uppercase tracking-widest text-neutral-500 mb-1">Pairing code</p>
@@ -58,6 +55,6 @@ export function DevicePage() {
           </div>
         )}
       </div>
-    </div>
+    </AuthLayout>
   );
 }

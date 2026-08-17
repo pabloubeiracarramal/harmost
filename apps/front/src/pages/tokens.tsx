@@ -1,6 +1,6 @@
-import { AppShell } from '@/app/AppShell';
 import { useAgents } from '@/features/agents';
 import { useAgentTokens, useRevokeToken } from '@/features/agent-tokens';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function TokensPage() {
   const { data: tokens = [], isLoading } = useAgentTokens();
@@ -15,11 +15,7 @@ export function TokensPage() {
   const revoke = useRevokeToken();
 
   return (
-    <AppShell>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Agent Tokens</h2>
-      </div>
-
+    <PageContainer>
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : tokens.length === 0 ? (
@@ -72,6 +68,6 @@ export function TokensPage() {
           </table>
         </div>
       )}
-    </AppShell>
+    </PageContainer>
   );
 }

@@ -5,14 +5,13 @@ Web UI for Harmost: GitHub OAuth login, agent dashboard with live status, agent 
 
 ## Architecture: feature-based with a shared kernel
 
-See [ADR 0008](../../docs/adr/0008-frontend-feature-based-architecture.md) and [ADR 0009](../../docs/adr/0009-frontend-pages-layer.md) for the full rationale. Directory layout:
+See [ADR 0008](../../docs/adr/0008-frontend-feature-based-architecture.md), [ADR 0009](../../docs/adr/0009-frontend-pages-layer.md), and [ADR 0011](../../docs/adr/0011-authenticated-shell-in-routes.md) for the full rationale. Directory layout:
 
 ```
 src/
-  app/                    # router, top-level providers, app shell
+  app/                    # router, top-level providers
     router.tsx            # createRouter() + Register
-    AppShell.tsx           # authenticated chrome (nav, /me identity, sign-out)
-  shared/                 # never imports from features/, pages/, or routes/
+  shared/                 # never imports from features/ or pages/, except SidebarFooter.tsx and routes/_authenticated.tsx — see Boundaries below
     api/
       httpClient.ts        # the one fetch wrapper (JWT bearer, 401 handling)
       auth.ts               # token storage (getToken/setToken/clearToken/isAuthenticated)
@@ -22,7 +21,13 @@ src/
       useWsSubscribe.ts      # generic hook wrapping wsClient.subscribe
     types/api-error.ts     # ApiError
     lib/utils.ts           # cn() helper
-    components/            # generic UI primitives (ui/, layout/) — none yet
+    components/layout/      # generic layout primitives — presentational, except SidebarFooter (see below)
+      app-layout/AppLayout.tsx        # authenticated shell frame (sidebar + top bar + content)
+      sidebar/SidebarContainer.tsx    # composes SidebarHeader/SidebarNav/SidebarFooter, no props
+      sidebar/SidebarFooter.tsx       # signed-in user menu + sign out — calls useMe() directly
+      top-bar/TopBar.tsx              # persistent breadcrumb header, route-driven (no feature hooks)
+      page-container/PageContainer.tsx # per-page content wrapper (padding/max-width only)
+      auth-layout/AuthLayout.tsx      # chrome for unauthenticated pages (login, device)
   features/
     agents/                # agent domain: list/detail hooks, socket, presentational pieces
     jobs/                  # job domain: list/dispatch/detail hooks, socket, presentational pieces
@@ -33,7 +38,7 @@ src/
 ```
 
 `routes/` and `pages/` are deliberately separate (see ADR 0009):
-- **`routes/`** is TanStack Router's `routesDirectory` (set in `vite.config.ts`). Each file: `createFileRoute(path)`, a `beforeLoad` auth guard, and a `component` pointing at the matching file in `pages/`. For dynamic segments (`agents/$id.tsx`, `jobs/$id.tsx`), the route keeps a small `RouteComponent` wrapper that calls `Route.useParams()` and renders `<XxxPage id={id} />` — params cross into `pages/` as a plain prop.
+- **`routes/`** is TanStack Router's `routesDirectory` (set in `vite.config.ts`). `routes/_authenticated.tsx` is a pathless layout route (ADR 0011) that owns the one `beforeLoad` auth guard and renders the authenticated shell; every protected route lives under `routes/_authenticated/` and is just `createFileRoute(path)` + a `component` pointing at the matching file in `pages/` — no guard of its own. Unauthenticated routes (`login.tsx`, `device.tsx`) keep their own inline `beforeLoad` guard, since they aren't nested under `_authenticated`. For dynamic segments (`agents/$id.tsx`, `jobs/$id.tsx`), the route keeps a small `RouteComponent` wrapper that calls `Route.useParams()` and renders `<XxxPage id={id} />` — params cross into `pages/` as a plain prop.
 - **`pages/`** mirrors `routes/`'s paths (e.g. `routes/jobs/$id.tsx` ↔ `pages/jobs/$id.tsx`) but contains **zero knowledge of TanStack Router's route-definition APIs** — no `createFileRoute`, no `Route`, no `Route.useParams()`. A page:
   - calls feature hooks directly (`useAgents()`, `useJobsListSocket()`, etc.) — this is *composing* a feature, not owning business logic
   - renders feature-owned presentational components (`AgentCard`, `JobStateBadge`, ...) plus its own layout markup
@@ -52,11 +57,11 @@ Each `features/<feature>/` follows:
 - `index.ts` — the **only** surface other features/pages may import from this feature
 
 **Boundaries** (not lint-enforced yet — no ESLint config exists in this repo; enforced by review):
-- `shared/` never imports from `features/`, `pages/`, or `routes/`.
+- `shared/` never imports from `features/`, `pages/`, or `routes/` — except `SidebarFooter.tsx` (calls `useMe()` for the account menu) and `routes/_authenticated.tsx` itself (see below).
 - Features import `shared/` freely, and other features **only** via that feature's `index.ts` (e.g. `import { useAgents } from '@/features/agents'` — `jobs` and `agent-tokens` both do this to resolve agent names).
 - `pages/*` compose feature hooks/components; they don't define their own query/mutation/socket logic, and they don't import anything from `@tanstack/react-router`'s route-definition surface (`createFileRoute`, `Route`). If a page accumulates real data-fetching logic, that logic belongs in the owning feature's `api/`.
 - Don't promote something to `shared/` on first use — it stays in the feature until a second, different feature needs it too.
-- `AppShell` (in `app/`, not `shared/`) is the one place outside `pages/` allowed to call a feature hook (`useMe()` from `features/auth`) directly — `app/`, unlike `shared/`, is allowed to import from `features/`. This was a deliberate deviation from putting the shell under `shared/components/layout/`: doing so would require `AppShell` to take `user`/`onLogout` as props, which would push a `useMe()` + logout call into every single authenticated page instead of one place. See ADR 0009.
+- `routes/_authenticated.tsx` is a TanStack Router pathless layout route whose `component` renders the authenticated shell (`AppLayout` wrapping `<Outlet/>`) for everything nested under it, and owns the single `beforeLoad` auth guard shared by every protected route. `AppLayout` itself takes no feature-hook dependency (just `children`) and composes `SidebarContainer`/`TopBar` internally. The one feature-hook call outside `pages/` and `routes/_authenticated.tsx` is `SidebarFooter.tsx` calling `useMe()` directly for the signed-in user's avatar/name and sign-out — narrow and presentational enough (no query/mutation logic of its own) to live in `shared/components/layout/sidebar/` rather than being threaded down as props. See ADR 0011 (supersedes ADR 0009's `AppShell`-in-`app/` rule).
 
 ## Routes
 - `/` — home; `/login` — GitHub OAuth button; `/auth/callback` — stores JWT, redirects
@@ -90,7 +95,8 @@ Each `features/<feature>/` follows:
 - `src/routes/index.tsx` — home route (`/`)
 - `src/routeTree.gen.ts` — auto-generated route tree (do not edit)
 - `src/main.tsx` — Vite entry point (required by `index.html`); thin — just mounts `<RouterProvider>`/`<QueryClientProvider>` using `app/router.tsx` and `shared/api/queryClient.ts`
-- `src/app/router.tsx`, `src/app/AppShell.tsx` — see Architecture above
+- `src/app/router.tsx` — see Architecture above
+- `src/routes/_authenticated.tsx` — pathless layout route: auth guard + authenticated shell composition (ADR 0011)
 - `src/shared/` — see Architecture above
 - `src/features/` — see Architecture above
 - `src/pages/` — see Architecture above
@@ -105,7 +111,7 @@ Each `features/<feature>/` follows:
 - Tests: `src/**/*.spec.{ts,tsx}`
 - Prefer `@testing-library/react` for component tests.
 - Use `cn()` from `@/shared/lib/utils` for conditional classNames.
-- Add new routes as a pair: `src/routes/<path>.tsx` (guard + `component` pointer, or a `RouteComponent` wrapper + `Route.useParams()` for dynamic segments) and `src/pages/<path>.tsx` (the actual composition, taking any params as props). The Vite plugin picks up the `routes/` file automatically on next serve/build.
+- Add new routes as a pair: `src/routes/<path>.tsx` (a `component` pointer, or a `RouteComponent` wrapper + `Route.useParams()` for dynamic segments) and `src/pages/<path>.tsx` (the actual composition, taking any params as props). If the route needs auth, put it under `src/routes/_authenticated/<path>.tsx` — no `beforeLoad` needed, the pathless layout route handles it. Only unauthenticated top-level routes (`login.tsx`, `device.tsx`) carry their own inline `beforeLoad` guard. The Vite plugin picks up the `routes/` file automatically on next serve/build.
 - A page never imports `createFileRoute`/`Route` from `@tanstack/react-router` — only `Link`/`useNavigate` if it needs to navigate. If a page seems to need `Route.useParams()`, that's a sign the param should be threaded from the route file as a prop instead.
 - New query/mutation hooks go in the owning feature's `api/` folder, never inline in a page. Check `api/keys.ts` for an existing key before writing a new one.
 - New WS handling goes through `shared/ws/wsClient.ts` (via `useWsSubscribe`), never a raw `new WebSocket(...)`.

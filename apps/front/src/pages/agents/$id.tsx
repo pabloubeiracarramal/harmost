@@ -1,5 +1,3 @@
-import { Link } from '@tanstack/react-router';
-import { AppShell } from '@/app/AppShell';
 import {
   useAgent,
   useAgentDetailSocket,
@@ -8,6 +6,7 @@ import {
   ContainersCard,
   StatRow,
 } from '@/features/agents';
+import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function AgentDetailPage({ id }: { id: string }) {
   const { data: agent, isLoading } = useAgent(id);
@@ -16,42 +15,35 @@ export function AgentDetailPage({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <PageContainer>
         <p className="text-neutral-500">Loading…</p>
-      </AppShell>
+      </PageContainer>
     );
   }
 
   if (!agent) {
     return (
-      <AppShell>
+      <PageContainer>
         <p className="text-neutral-500">Agent not found.</p>
-      </AppShell>
+      </PageContainer>
     );
   }
 
   const isOnline = agent.status === 'online';
+  const displayName = agent.name !== 'pending' ? agent.name : agent.hostname || 'Unnamed agent';
 
   return (
-    <AppShell>
+    <PageContainer>
       <div className="mx-auto max-w-3xl space-y-8">
-        <div className="flex items-center gap-4">
-          <Link to="/dashboard" className="text-neutral-400 hover:text-white transition text-sm">
-            ← Agents
-          </Link>
-          <span className="text-neutral-700">/</span>
-          <span className="text-sm font-medium truncate">{agent.name !== 'pending' ? agent.name : agent.hostname || 'Unnamed'}</span>
-        </div>
-        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">
-              {agent.name !== 'pending' ? agent.name : agent.hostname || 'Unnamed agent'}
-            </h1>
-            <p className="text-neutral-400 mt-1">{agent.hostname}</p>
+            <h1 className="text-2xl font-bold tracking-tight">{displayName}</h1>
+            {agent.hostname && (
+              <p className="mt-1 text-sm text-muted-foreground">{agent.hostname}</p>
+            )}
           </div>
           <span
-            className={`mt-1 flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
               isOnline ? 'bg-emerald-500/10 text-emerald-400' : 'bg-neutral-700/60 text-neutral-400'
             }`}
           >
@@ -79,6 +71,6 @@ export function AgentDetailPage({ id }: { id: string }) {
           )}
         </div>
       </div>
-    </AppShell>
+    </PageContainer>
   );
 }
