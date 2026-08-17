@@ -1,4 +1,5 @@
 import { useAgents, useAgentsListSocket, AgentCard, EmptyState } from '@/features/agents';
+import { Button } from '@/shared/components/ui/button';
 import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function DashboardPage() {
@@ -9,12 +10,9 @@ export function DashboardPage() {
     <PageContainer>
       <div className="mb-6 flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">Machines running the Harmost agent.</p>
-        <a
-          href="/device"
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
-        >
-          Pair new agent
-        </a>
+        <Button asChild>
+          <a href="/device">Pair new agent</a>
+        </Button>
       </div>
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>

@@ -3,6 +3,7 @@ import type { ContainerActionKind, ContainerInfo } from '@/features/agents/api/t
 import type { PendingAction } from '@/features/agents/hooks/useAgentContainers';
 import { formatRelativeTime } from '@/features/agents/lib/formatRelativeTime';
 import { formatBytes } from '@/features/agents/lib/formatBytes';
+import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
 interface ContainersCardProps {
@@ -27,22 +28,20 @@ function ActionButton({
   pendingLabel,
   disabled,
   pending,
+  variant = 'outline',
   onClick,
 }: {
   label: string;
   pendingLabel: string;
   disabled: boolean;
   pending: boolean;
+  variant?: 'outline' | 'destructive';
   onClick: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled || pending}
-      className="rounded-md border border-neutral-800 px-2 py-1 text-xs font-medium text-neutral-300 transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40"
-    >
+    <Button variant={variant} size="xs" onClick={onClick} disabled={disabled || pending}>
       {pending ? pendingLabel : label}
-    </button>
+    </Button>
   );
 }
 
@@ -125,6 +124,7 @@ export function ContainersCard({ containers, pending, onAction }: ContainersCard
                         pendingLabel="Removing…"
                         disabled={running}
                         pending={rowPending?.action === 'remove'}
+                        variant="destructive"
                         onClick={() => {
                           if (window.confirm(`Remove container "${c.name}"?`)) onAction(c.id, 'remove');
                         }}

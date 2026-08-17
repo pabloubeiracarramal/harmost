@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useAgents } from '@/features/agents';
 import { useJobs, useJobsListSocket, JobStateBadge } from '@/features/jobs';
+import { Button } from '@/shared/components/ui/button';
 import { PageContainer } from '@/shared/components/layout/page-container/PageContainer';
 
 export function JobsPage() {
@@ -17,12 +18,9 @@ export function JobsPage() {
     <PageContainer>
       <div className="mb-6 flex items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">Container jobs dispatched to your agents.</p>
-        <Link
-          to="/jobs/new"
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
-        >
-          New job
-        </Link>
+        <Button asChild>
+          <Link to="/jobs/new">New job</Link>
+        </Button>
       </div>
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
