@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthenticatedTokensRouteImport } from './routes/_authenticated/tokens'
+import { Route as AuthenticatedProjectsRouteImport } from './routes/_authenticated/projects'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedJobsIndexRouteImport } from './routes/_authenticated/jobs/index'
 import { Route as AuthenticatedJobsNewRouteImport } from './routes/_authenticated/jobs/new'
@@ -50,6 +51,11 @@ const AuthenticatedTokensRoute = AuthenticatedTokensRouteImport.update({
   path: '/tokens',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProjectsRoute = AuthenticatedProjectsRouteImport.update({
+  id: '/projects',
+  path: '/projects',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/device': typeof DeviceRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/projects': typeof AuthenticatedProjectsRoute
   '/tokens': typeof AuthenticatedTokensRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/agents/$id': typeof AuthenticatedAgentsIdRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/device': typeof DeviceRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/projects': typeof AuthenticatedProjectsRoute
   '/tokens': typeof AuthenticatedTokensRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/agents/$id': typeof AuthenticatedAgentsIdRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/device': typeof DeviceRoute
   '/login': typeof LoginRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/projects': typeof AuthenticatedProjectsRoute
   '/_authenticated/tokens': typeof AuthenticatedTokensRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_authenticated/agents/$id': typeof AuthenticatedAgentsIdRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/device'
     | '/login'
     | '/dashboard'
+    | '/projects'
     | '/tokens'
     | '/auth/callback'
     | '/agents/$id'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/device'
     | '/login'
     | '/dashboard'
+    | '/projects'
     | '/tokens'
     | '/auth/callback'
     | '/agents/$id'
@@ -146,6 +157,7 @@ export interface FileRouteTypes {
     | '/device'
     | '/login'
     | '/_authenticated/dashboard'
+    | '/_authenticated/projects'
     | '/_authenticated/tokens'
     | '/auth/callback'
     | '/_authenticated/agents/$id'
@@ -206,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTokensRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/projects': {
+      id: '/_authenticated/projects'
+      path: '/projects'
+      fullPath: '/projects'
+      preLoaderRoute: typeof AuthenticatedProjectsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -246,6 +265,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedProjectsRoute: typeof AuthenticatedProjectsRoute
   AuthenticatedTokensRoute: typeof AuthenticatedTokensRoute
   AuthenticatedAgentsIdRoute: typeof AuthenticatedAgentsIdRoute
   AuthenticatedJobsIdRoute: typeof AuthenticatedJobsIdRoute
@@ -255,6 +275,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedProjectsRoute: AuthenticatedProjectsRoute,
   AuthenticatedTokensRoute: AuthenticatedTokensRoute,
   AuthenticatedAgentsIdRoute: AuthenticatedAgentsIdRoute,
   AuthenticatedJobsIdRoute: AuthenticatedJobsIdRoute,

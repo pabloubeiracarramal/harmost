@@ -1,15 +1,17 @@
 import type { ReactNode } from 'react';
+import { TopBar } from '@/shared/components/layout/top-bar/TopBar';
+import { SidebarContainer } from '../sidebar/SidebarContainer';
 
 interface AppLayoutProps {
-  sidebar: ReactNode;
   children: ReactNode;
 }
 
-export function AppLayout({ sidebar, children }: AppLayoutProps) {
+export function AppLayout({  children }: AppLayoutProps) {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-      {sidebar}
+      <SidebarContainer/>
       <div className="flex flex-1 flex-col overflow-hidden">
+        <TopBar />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

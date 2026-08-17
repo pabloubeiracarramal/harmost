@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useAgents } from '@/features/agents';
 import { useDispatchJob, Field, Input, type JobSpec } from '@/features/jobs';
@@ -71,15 +71,8 @@ export function NewJobPage() {
   const error = formError || (dispatch.error as Error | null)?.message;
 
   return (
-    <PageContainer title="New job">
+    <PageContainer>
       <div className="mx-auto max-w-xl">
-        <Link
-          to="/jobs"
-          className="mb-6 inline-block text-sm text-neutral-400 hover:text-white transition"
-        >
-          ← Jobs
-        </Link>
-
         <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
           <Field label="Agent" required>
             <select

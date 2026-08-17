@@ -11,7 +11,7 @@ See [ADR 0008](../../docs/adr/0008-frontend-feature-based-architecture.md), [ADR
 src/
   app/                    # router, top-level providers
     router.tsx            # createRouter() + Register
-  shared/                 # never imports from features/ or pages/ (routes/_authenticated.tsx is the one exception — see below)
+  shared/                 # never imports from features/ or pages/, except SidebarFooter.tsx and routes/_authenticated.tsx — see Boundaries below
     api/
       httpClient.ts        # the one fetch wrapper (JWT bearer, 401 handling)
       auth.ts               # token storage (getToken/setToken/clearToken/isAuthenticated)
@@ -21,10 +21,12 @@ src/
       useWsSubscribe.ts      # generic hook wrapping wsClient.subscribe
     types/api-error.ts     # ApiError
     lib/utils.ts           # cn() helper
-    components/layout/      # generic layout primitives, all presentational (props only, no feature hooks)
-      app-layout/AppLayout.tsx        # authenticated shell frame (sidebar + content)
-      sidebar/SidebarContainer.tsx    # nav + user + logout — takes user/onLogout as props
-      page-container/PageContainer.tsx # per-page title/description/actions header
+    components/layout/      # generic layout primitives — presentational, except SidebarFooter (see below)
+      app-layout/AppLayout.tsx        # authenticated shell frame (sidebar + top bar + content)
+      sidebar/SidebarContainer.tsx    # composes SidebarHeader/SidebarNav/SidebarFooter, no props
+      sidebar/SidebarFooter.tsx       # signed-in user menu + sign out — calls useMe() directly
+      top-bar/TopBar.tsx              # persistent breadcrumb header, route-driven (no feature hooks)
+      page-container/PageContainer.tsx # per-page content wrapper (padding/max-width only)
       auth-layout/AuthLayout.tsx      # chrome for unauthenticated pages (login, device)
   features/
     agents/                # agent domain: list/detail hooks, socket, presentational pieces
@@ -55,11 +57,11 @@ Each `features/<feature>/` follows:
 - `index.ts` — the **only** surface other features/pages may import from this feature
 
 **Boundaries** (not lint-enforced yet — no ESLint config exists in this repo; enforced by review):
-- `shared/` never imports from `features/`, `pages/`, or `routes/`.
+- `shared/` never imports from `features/`, `pages/`, or `routes/` — except `SidebarFooter.tsx` (calls `useMe()` for the account menu) and `routes/_authenticated.tsx` itself (see below).
 - Features import `shared/` freely, and other features **only** via that feature's `index.ts` (e.g. `import { useAgents } from '@/features/agents'` — `jobs` and `agent-tokens` both do this to resolve agent names).
 - `pages/*` compose feature hooks/components; they don't define their own query/mutation/socket logic, and they don't import anything from `@tanstack/react-router`'s route-definition surface (`createFileRoute`, `Route`). If a page accumulates real data-fetching logic, that logic belongs in the owning feature's `api/`.
 - Don't promote something to `shared/` on first use — it stays in the feature until a second, different feature needs it too.
-- `routes/_authenticated.tsx` is the one place outside `pages/` allowed to call a feature hook (`useMe()` from `features/auth`) directly — it's a TanStack Router pathless layout route whose `component` renders the authenticated shell (`AppLayout` + `SidebarContainer`) for everything nested under it, and owns the single `beforeLoad` auth guard shared by every protected route. `AppLayout`/`SidebarContainer` themselves stay presentational, taking `user`/`onLogout` as props, so they live in `shared/components/layout/`. See ADR 0011 (supersedes ADR 0009's `AppShell`-in-`app/` rule).
+- `routes/_authenticated.tsx` is a TanStack Router pathless layout route whose `component` renders the authenticated shell (`AppLayout` wrapping `<Outlet/>`) for everything nested under it, and owns the single `beforeLoad` auth guard shared by every protected route. `AppLayout` itself takes no feature-hook dependency (just `children`) and composes `SidebarContainer`/`TopBar` internally. The one feature-hook call outside `pages/` and `routes/_authenticated.tsx` is `SidebarFooter.tsx` calling `useMe()` directly for the signed-in user's avatar/name and sign-out — narrow and presentational enough (no query/mutation logic of its own) to live in `shared/components/layout/sidebar/` rather than being threaded down as props. See ADR 0011 (supersedes ADR 0009's `AppShell`-in-`app/` rule).
 
 ## Routes
 - `/` — home; `/login` — GitHub OAuth button; `/auth/callback` — stores JWT, redirects

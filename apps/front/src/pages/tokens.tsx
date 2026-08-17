@@ -15,7 +15,7 @@ export function TokensPage() {
   const revoke = useRevokeToken();
 
   return (
-    <PageContainer title="Agent Tokens">
+    <PageContainer>
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : tokens.length === 0 ? (

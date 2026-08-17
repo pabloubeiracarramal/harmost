@@ -14,17 +14,16 @@ export function JobsPage() {
   };
 
   return (
-    <PageContainer
-      title="Jobs"
-      actions={
+    <PageContainer>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">Container jobs dispatched to your agents.</p>
         <Link
           to="/jobs/new"
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium hover:bg-indigo-500 transition"
         >
           New job
         </Link>
-      }
-    >
+      </div>
       {isLoading ? (
         <p className="text-neutral-500">Loading…</p>
       ) : jobs.length === 0 ? (
