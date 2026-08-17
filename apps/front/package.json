@@ -1,5 +1,8 @@
 {
   "name": "front",
   "private": true,
-  "version": "0.0.0"
+  "version": "0.0.0",
+  "dependencies": {
+    "radix-ui": "^1.6.7"
+  }
 }
