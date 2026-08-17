@@ -18,7 +18,7 @@ func (r *AgentRepo) Create(ctx context.Context, agent *domain.Agent) error {
 
 func (r *AgentRepo) GetByID(ctx context.Context, orgID, id string) (*domain.Agent, error) {
 	var a domain.Agent
-	q := r.db.WithContext(ctx).Where("id = ?", id)
+	q := r.db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", id)
 	if orgID != "" {
 		q = q.Where("org_id = ?", orgID)
 	}
@@ -28,10 +28,25 @@ func (r *AgentRepo) GetByID(ctx context.Context, orgID, id string) (*domain.Agen
 func (r *AgentRepo) ListByOrg(ctx context.Context, orgID string) ([]domain.Agent, error) {
 	var agents []domain.Agent
 	err := r.db.WithContext(ctx).
-		Where("org_id = ?", orgID).
+		Where("org_id = ? AND deleted_at IS NULL", orgID).
 		Order("created_at DESC").
 		Find(&agents).Error
 	return agents, err
+}
+
+// Delete soft-deletes the agent (org-scoped) so job history referencing it
+// via the jobs.agent_id FK stays intact.
+func (r *AgentRepo) Delete(ctx context.Context, orgID, id string) error {
+	result := r.db.WithContext(ctx).Model(&domain.Agent{}).
+		Where("id = ? AND org_id = ? AND deleted_at IS NULL", id, orgID).
+		Update("deleted_at", time.Now())
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
 }
 
 func (r *AgentRepo) SetOnline(ctx context.Context, id string, at time.Time) error {

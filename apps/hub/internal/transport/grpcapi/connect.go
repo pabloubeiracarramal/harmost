@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
 	"github.com/harmost/hub/internal/domain"
 	"github.com/harmost/hub/internal/events"
+	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -88,7 +88,7 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 		return stream.Send(msg)
 	}
 
-	s.reg.add(agent.ID, safeSend)
+	killCh := s.reg.add(agent.ID, safeSend)
 	defer s.reg.remove(agent.ID)
 
 	// A watch from before this (re)connect doesn't survive on the agent
@@ -171,6 +171,10 @@ func (s *Server) Connect(stream grpc.BidiStreamingServer[harmostv1.AgentMessage,
 
 		case <-ticker.C:
 			flush()
+
+		case <-killCh:
+			flush()
+			return grpcstatus.Error(codes.Aborted, "agent unpaired")
 
 		case <-ctx.Done():
 			flush()

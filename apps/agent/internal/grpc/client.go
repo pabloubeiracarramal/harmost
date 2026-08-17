@@ -2,14 +2,17 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/harmost/agent/internal/config"
 	"github.com/harmost/agent/internal/docker"
 	"github.com/harmost/agent/internal/metrics"
 	harmostv1 "github.com/harmost/proto/gen/harmost/v1"
@@ -29,6 +32,11 @@ const (
 	// containers card wants something closer to live.
 	containerWatchInterval = 5 * time.Second
 )
+
+// ErrUnpaired is returned by Connect when the stream ended because the hub
+// sent an Unpair message — the daemon loop should stop reconnecting rather
+// than retry with a now-revoked token.
+var ErrUnpaired = errors.New("agent unpaired from hub")
 
 type Client struct {
 	mgr *docker.Manager // nil when Docker is unavailable on this host
@@ -51,6 +59,11 @@ type Client struct {
 	// loop (if any). Scoped to one Connect call — see startWatchingContainers.
 	watchMu     sync.Mutex
 	watchCancel context.CancelFunc
+
+	// unpaired is set on the recv goroutine when a HubMessage_Unpair
+	// arrives, and read by Connect's main loop once the stream then closes,
+	// to distinguish an unpair from an ordinary disconnect.
+	unpaired atomic.Bool
 }
 
 func New(mgr *docker.Manager) *Client {
@@ -127,6 +140,8 @@ func isTerminalStatus(msg *harmostv1.AgentMessage) bool {
 // (hub serves plaintext gRPC unless GRPC_TLS_CERT_FILE/GRPC_TLS_KEY_FILE are
 // configured — see docs/dev.md).
 func (c *Client) Connect(ctx context.Context, target, token string, insecureConn bool) error {
+	c.unpaired.Store(false)
+
 	// A watch loop left over from a previous stream (if the hub never got to
 	// send Unwatch before the connection dropped) is stale — its own ctx is
 	// already cancelled below on that call's return, but reset the field so
@@ -233,6 +248,9 @@ func (c *Client) Connect(ctx context.Context, target, token string, insecureConn
 		case <-ctx.Done():
 			return nil
 		case err := <-recvCh:
+			if c.unpaired.Load() {
+				return ErrUnpaired
+			}
 			return err
 		case msg := <-c.statusCh:
 			if err := sendMsg(msg); err != nil {
@@ -303,6 +321,12 @@ func (c *Client) handleMessage(ctx, watchStreamCtx context.Context, msg *harmost
 		// before SIGKILL) — must not block this goroutine, which also
 		// drives every other incoming message.
 		go c.performContainerAction(ctx, payload.ContainerAction)
+	case *harmostv1.HubMessage_Unpair:
+		log.Printf("agent: unpaired from hub")
+		if err := config.Clear(); err != nil {
+			log.Printf("agent: failed to clear local pairing config: %v", err)
+		}
+		c.unpaired.Store(true)
 	}
 }
 

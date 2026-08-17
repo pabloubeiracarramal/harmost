@@ -48,3 +48,16 @@ func Save(cfg *Config) error {
 	}
 	return os.WriteFile(path, data, 0600)
 }
+
+// Clear removes the persisted config, e.g. after the hub unpairs this agent.
+// A missing file is not an error.
+func Clear() error {
+	path, err := configPath()
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}

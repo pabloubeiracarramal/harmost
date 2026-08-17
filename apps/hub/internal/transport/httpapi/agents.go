@@ -56,3 +56,24 @@ func (s *Server) getAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonOK(w, toAgentResponse(*agent))
 }
+
+func (s *Server) deleteAgent(w http.ResponseWriter, r *http.Request) {
+	orgID := orgIDFromCtx(r.Context())
+	id := chi.URLParam(r, "id")
+
+	if err := s.svc.Agent.Delete(r.Context(), orgID, id); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			jsonError(w, http.StatusNotFound, "agent not found")
+			return
+		}
+		jsonError(w, http.StatusInternalServerError, "failed to delete agent")
+		return
+	}
+
+	// Best-effort: the agent is already gone from the caller's perspective
+	// either way.
+	_ = s.svc.AgentToken.RevokeByAgentID(r.Context(), orgID, id)
+	s.dispatcher.Kick(id)
+
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -238,6 +238,20 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '500': { $ref: '#/components/responses/InternalError' }
+    delete:
+      tags: [agents]
+      summary: Unpair an agent
+      description: |
+        Soft-deletes the agent: revokes its token(s), force-disconnects its
+        gRPC stream if currently connected, and hides it from `listAgents`/
+        `getAgent`. Job history belonging to the agent is kept.
+      operationId: deleteAgent
+      responses:
+        '204':
+          description: Unpaired.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/agents/{id}/containers/watch:
     parameters:

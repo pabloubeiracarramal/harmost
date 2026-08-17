@@ -84,7 +84,7 @@ Next: M5 (deployment & packaging). Decided 2026-07-27: hub deploys self-hosted o
 
 ## Pending / Backlog
 
-- [ ] Token revoke doesn't drop an already-open gRPC stream — `Validate` is only checked at `Connect` time, so a revoked agent stays connected until it disconnects/reconnects on its own (accepted M4 trade-off; would need the hub to proactively close the stream via the registry)
+- [ ] Standalone `POST /api/v1/agent-tokens/{id}/revoke` still doesn't drop an already-open gRPC stream — `Validate` is only checked at `Connect` time (accepted M4 trade-off). `grpcapi.Server.Kick` now exists and is used by `DELETE /api/v1/agents/{id}` (unpair), so wiring `revokeAgentToken` to call it too would close this gap in the remaining path
 - [ ] Server-side per-job WS event filtering — hub fans out all org events to every client; clients filter on `job_id` (fine at MVP scale)
 - [ ] Org-scope `GET /jobs/{id}` and `GET /jobs/{id}/logs` — currently any authenticated user can read any job by ID (cancel is org-scoped; candidate for M4 hardening)
 - [ ] Cancel-on-reconcile-mismatch — a job failed by the sweeper during a long partition keeps running on the agent; its late terminal status is dropped by the guard and no CancelJob is sent (accepted M2 trade-off)
