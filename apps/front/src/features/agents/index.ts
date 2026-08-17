@@ -14,6 +14,7 @@ export type {
   ContainerActionPayload,
 } from './api/types';
 export { AgentCard } from './components/AgentCard';
+export { PairAgentDialog } from './components/PairAgentDialog';
 export { EmptyState } from './components/EmptyState';
 export { RadialGauge } from './components/RadialGauge';
 export { StatRow } from './components/StatRow';

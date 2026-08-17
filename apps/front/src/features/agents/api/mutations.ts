@@ -3,9 +3,12 @@ import { api } from '@/shared/api/httpClient';
 import { agentKeys } from './keys';
 
 export function useApproveDevice() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userCode: string) =>
       api.post('/api/v1/device/approve', { user_code: userCode }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: agentKeys.lists() }),
   });
 }
 

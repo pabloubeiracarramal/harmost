@@ -143,7 +143,7 @@ func (s *Server) handleDeviceAuthorize(w http.ResponseWriter, r *http.Request) {
 	jsonOK(w, api.DeviceAuthorizeResponse{
 		DeviceCode:      d.DeviceCode,
 		UserCode:        d.UserCode,
-		VerificationURI: fmt.Sprintf("%s/device?code=%s", s.cfg.FrontendURL, url.QueryEscape(d.UserCode)),
+		VerificationURI: fmt.Sprintf("%s/dashboard?code=%s", s.cfg.FrontendURL, url.QueryEscape(d.UserCode)),
 		ExpiresIn:       int(time.Until(d.ExpiresAt).Seconds()),
 		Interval:        5,
 		GRPCAddr:        s.cfg.GRPCAddr,
