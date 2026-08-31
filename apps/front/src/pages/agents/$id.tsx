@@ -41,7 +41,7 @@ export function AgentDetailPage({ id }: { id: string }) {
     agent.name !== 'pending' ? agent.name : agent.hostname || 'Unnamed agent';
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{displayName}</h1>
