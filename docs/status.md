@@ -88,6 +88,7 @@ Next: M5 (deployment & packaging). Decided 2026-07-27: hub deploys self-hosted o
 
 ## Pending / Backlog
 
+- [ ] **MVP scope was always meant to include a `Project` concept and a persistently-running deployment, not just run-to-completion jobs** — the real loop is login → create Project (repo, monorepo-aware) → deploy → service runs permanently on an agent, monitored through the hub. Today's `Job` doesn't fit steps 3–4: there's no git clone/build step anywhere (`JobSpec` only runs a pre-existing image), and every job's container is force-removed unconditionally on finish (`apps/agent/internal/docker/run.go`), so nothing survives past completion. Spec'd in #52. Once that lands, `Job` itself needs rethinking in depth — whether it stays a first-class user-facing concept, becomes an internal record under a `Deployment` (e.g. just the build step), or gets replaced outright.
 - [ ] Standalone `POST /api/v1/agent-tokens/{id}/revoke` still doesn't drop an already-open gRPC stream — `Validate` is only checked at `Connect` time (accepted M4 trade-off). `grpcapi.Server.Kick` now exists and is used by `DELETE /api/v1/agents/{id}` (unpair), so wiring `revokeAgentToken` to call it too would close this gap in the remaining path
 - [ ] Server-side per-job WS event filtering — hub fans out all org events to every client; clients filter on `job_id` (fine at MVP scale)
 - [ ] Org-scope `GET /jobs/{id}` and `GET /jobs/{id}/logs` — currently any authenticated user can read any job by ID (cancel is org-scoped; candidate for M4 hardening)
